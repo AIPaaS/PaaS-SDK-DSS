@@ -24,7 +24,7 @@ public class DSSFactory {
 	}
 
 	/**
-	 * @param mongoInfo   {"mongoServer":"10.1.228.200:37017;10.1.228.202:37017","database":"image","userName":"sa","password":"sa"}
+	 * @param mongoInfo   {"mongoServer":"10.1.xxx.xxx:37017;10.1.xxx.xxx:37017","database":"image","userName":"sa","password":"sa"}
 	 * @return
 	 * @throws Exception
 	 */
