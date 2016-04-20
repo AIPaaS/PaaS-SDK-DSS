@@ -5,13 +5,10 @@ import java.io.File;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import com.mongodb.ServerAddress;
 
-//import com.ai.paas.ipaas.config.inner.IConfigClient;
 
 public class DSSHelper {
 
@@ -47,12 +44,6 @@ public class DSSHelper {
 	public static long okSize(long a, long b) {
 		return Long.parseLong((a - b) + "");
 	}
-
-	// public static void setDSSRWConf(IConfigClient confBase,String
-	// dbName,Map<String,String> DSSRWConfMap) {
-	// Gson gson = new Gson();
-	// confBase.modifyConfig(DSS_CONFIG_PATH+dbName, gson.toJson(DSSRWConfMap));
-	// }
 
 	public static byte[] toByteArray(InputStream input) throws Exception {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();

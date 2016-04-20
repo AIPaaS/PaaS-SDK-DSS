@@ -1,9 +1,11 @@
 
+
 dependencies{
 
-
-	compile 'com.ai:ipaas-common:0.3'
-	compile 'org.mongodb:mongodb-driver:3.0.2'
+	compile project(":DSS-Base")
+	compile 'redis.clients:jedis:2.8.1'
+	compile 'com.ai:ipaas-ccs-inner:0.3'
+	compile 'com.ai:ipaas-uac:0.3'
 	compile 'org.apache.logging.log4j:log4j-api:2.2'
 	testCompile ('junit:junit:4.12'){
 		exclude group: 'org.mongodb', module: 'mongo-java-driver'
@@ -13,15 +15,6 @@ dependencies{
 		exclude group: 'commons-math3', module: 'commons-math3'
 		exclude group: 'commons-pool2', module: 'commons-pool2'
 		exclude group: 'org.mongodb', module: 'mongo-java-driver'
-	}
-}
-
-
-jar {
-	baseName moduleName
-	version moduleVersion
-	manifest {
-		attributes 'packageName': moduleName, 'Built-By': builtBy,'create-date': new Date().format('yyyy-MM-dd HH:mm:ss')
 	}
 }
 
@@ -40,18 +33,33 @@ publishing {
 					delegate.dependencies {
 						delegate.dependency {
 							delegate.groupId("com.ai")
-							delegate.artifactId("ipaas-common")
+							delegate.artifactId("ipaas-dss-base")
+							delegate.version("0.3")
+						}					
+						delegate.dependency {
+							delegate.groupId("com.ai")
+							delegate.artifactId("ipaas-uac")
+							delegate.version("0.3")
+						}	
+						delegate.dependency {
+							delegate.groupId("redis.clients")
+							delegate.artifactId("jedis")
+							delegate.version("2.8.1")
+						}
+						delegate.dependency {
+							delegate.groupId("com.ai")
+							delegate.artifactId("ipaas-uac")
+							delegate.version("0.3")
+						}
+						delegate.dependency {
+							delegate.groupId("com.ai")
+							delegate.artifactId("ipaas-ccs-inner")
 							delegate.version("0.3")
 						}
 						delegate.dependency {
 							delegate.groupId("org.apache.logging.log4j")
 							delegate.artifactId("log4j-api")
 							delegate.version("2.2")
-						}
-						delegate.dependency {
-							delegate.groupId("org.mongodb")
-							delegate.artifactId("mongodb-driver")
-							delegate.version("3.0.2")
 						}
 					}
 				}

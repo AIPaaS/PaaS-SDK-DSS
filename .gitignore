@@ -1,0 +1,10 @@
+.idea/
+.gradle/
+/.project
+/.classpath
+
+/DSS-Base/.project
+/DSS-Base/.settings
+/DSS-SRV/.project
+/DSS-SRV/.classpath
+/DSS-SRV/.settings

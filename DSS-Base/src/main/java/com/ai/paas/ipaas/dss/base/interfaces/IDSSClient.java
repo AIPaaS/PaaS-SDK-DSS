@@ -72,4 +72,20 @@ public interface IDSSClient {
 	 */
 	public Date getLastUpdateTime(String id);
 
+	/**
+	 * 获取文件的大小，如果不存在，则等于0
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public long getFileSize(String id);
+
+	/**
+	 * 判断文件是否存在
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public boolean isFileExist(String id);
+
 }

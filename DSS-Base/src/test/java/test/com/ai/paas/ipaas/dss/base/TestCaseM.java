@@ -7,7 +7,7 @@ import java.io.FileOutputStream;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.ai.paas.ipaas.dss.base.DSSFactory;
+import com.ai.paas.ipaas.dss.base.DSSBaseFactory;
 import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
 
 public class TestCaseM {
@@ -16,7 +16,7 @@ public class TestCaseM {
 
 	@Before
 	public void setUp() throws Exception {
-		iDSSClient =DSSFactory.getClient("{\"mongoServer\":\"10.1.228.200:37017;10.1.228.202:37017\",\"database\":\"admin\",\"userName\":\"sa\",\"password\":\"sa\"}");
+		iDSSClient =DSSBaseFactory.getClient("{\"mongoServer\":\"10.1.228.200:37017;10.1.228.202:37017\",\"database\":\"admin\",\"userName\":\"sa\",\"password\":\"sa\"}");
 	}
 	
 	@Test

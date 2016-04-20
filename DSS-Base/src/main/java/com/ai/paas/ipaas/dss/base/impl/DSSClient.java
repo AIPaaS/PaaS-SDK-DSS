@@ -26,24 +26,26 @@ public class DSSClient implements IDSSClient {
 	private static final String FILE_NAME = "filename";
 
 	private final static String REMARK = "remark";
+	private String bucket = "fs";
 	private MongoClient mongoClient;
 	private DB db;
-//	private static String dbName;
 
-	public DSSClient(String addr, String database, String userName, String password) {
-		MongoCredential credential = MongoCredential.createCredential(userName,
-				database, password.toCharArray());
+	public DSSClient(String addr, String database, String userName,
+			String password, String bucket) {
+		MongoCredential credential = MongoCredential.createMongoCRCredential(
+				userName, database, password.toCharArray());
 		mongoClient = new MongoClient(DSSHelper.Str2SAList(addr),
 				Arrays.asList(credential));
 		db = mongoClient.getDB(database);
-//		this.dbName = database;
+		if (null != bucket && !"".equals(bucket.trim())) {
+			this.bucket = bucket;
+		}
 	}
 
 	@Override
 	public String save(File file, String remark) {
 		String fileType = DSSHelper.getFileType(file.getName());
-//		GridFS fs = new GridFS(db, dbName);
-		GridFS fs = new GridFS(db);
+		GridFS fs = new GridFS(db, bucket);
 		GridFSInputFile dbFile;
 		try {
 			dbFile = fs.createFile(file);
@@ -66,7 +68,7 @@ public class DSSClient implements IDSSClient {
 			log.error("bytes illegal");
 			throw new DSSRuntimeException(new Exception("bytes illegal"));
 		}
-		GridFS fs = new GridFS(db);
+		GridFS fs = new GridFS(db, bucket);
 		GridFSInputFile dbFile;
 		try {
 			dbFile = fs.createFile(bytes);
@@ -87,7 +89,7 @@ public class DSSClient implements IDSSClient {
 			log.error("id illegal");
 			throw new DSSRuntimeException(new Exception("id illegal"));
 		}
-		GridFS fs = new GridFS(db);
+		GridFS fs = new GridFS(db, bucket);
 		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
 		if (dbFile == null) {
 			return null;
@@ -106,7 +108,7 @@ public class DSSClient implements IDSSClient {
 			log.error("id illegal");
 			throw new DSSRuntimeException(new Exception("id or bytes illegal"));
 		}
-		GridFS fs = new GridFS(db);
+		GridFS fs = new GridFS(db, bucket);
 		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
 		if (dbFile == null) {
 			return false;
@@ -121,7 +123,7 @@ public class DSSClient implements IDSSClient {
 			log.error("id or bytes illegal");
 			throw new DSSRuntimeException(new Exception("id or bytes illegal"));
 		}
-		GridFS fs = new GridFS(db);
+		GridFS fs = new GridFS(db, bucket);
 		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
 		if (dbFile == null) {
 			log.error("file missing");
@@ -144,7 +146,7 @@ public class DSSClient implements IDSSClient {
 			log.error("id is null");
 			throw new DSSRuntimeException(new Exception("id illegal"));
 		}
-		GridFS fs = new GridFS(db);
+		GridFS fs = new GridFS(db, bucket);
 		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
 		if (dbFile == null) {
 			log.error("file missing");
@@ -159,7 +161,7 @@ public class DSSClient implements IDSSClient {
 			log.error("id or file illegal");
 			throw new DSSRuntimeException(new Exception("id or file illegal"));
 		}
-		GridFS fs = new GridFS(db);
+		GridFS fs = new GridFS(db, bucket);
 		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
 		if (dbFile == null) {
 			log.error("file missing");
@@ -180,6 +182,26 @@ public class DSSClient implements IDSSClient {
 		fsfile.setFilename(fileName);
 		fsfile.put(FILE_NAME, fileName);
 		fsfile.save();
+	}
+
+	@Override
+	public long getFileSize(String id) {
+		GridFS fs = new GridFS(db, bucket);
+		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
+		if (dbFile != null) {
+			return dbFile.getLength();
+		}
+		return 0;
+	}
+
+	@Override
+	public boolean isFileExist(String id) {
+		GridFS fs = new GridFS(db, bucket);
+		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
+		if (dbFile != null) {
+			return true;
+		}
+		return false;
 	}
 
 }
