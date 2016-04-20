@@ -1,22 +1,15 @@
 .idea/
 .gradle/
+.settings/
 /.project
 /.classpath
 
 /DSS-Base/.project
 /DSS-Base/.settings
+/DSS-Base/bin
+/DSS-Base/.classpath
 /DSS-SRV/.project
 /DSS-SRV/.classpath
 /DSS-SRV/.settings
-/.settings
-/DSS-Base/bin
-/DSS-Base/.classpath
 /DSS-SRV/bin
-/.settings
-/DSS-Base/bin
-/DSS-Base/.classpath
-/DSS-SRV/bin
-/.settings
-/DSS-Base/.classpath
-/DSS-Base/bin
-/DSS-SRV/bin
+
