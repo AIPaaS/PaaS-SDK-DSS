@@ -8,3 +8,7 @@
 /DSS-SRV/.project
 /DSS-SRV/.classpath
 /DSS-SRV/.settings
+/.settings
+/DSS-Base/bin
+/DSS-Base/.classpath
+/DSS-SRV/bin

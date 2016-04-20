@@ -3,9 +3,10 @@ package test.com.ai.paas.ipaas.dss.dssclient;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
+
 import test.com.ai.paas.ipaas.dss.dssclient.base.DSSClient;
 
-import com.ai.paas.ipaas.dss.interfaces.IDSSClient;
 
 public class DeleteTest extends DSSClient {
 	private IDSSClient iDSSClient = null;

@@ -2,9 +2,10 @@ package test.com.ai.paas.ipaas.dss.dssclient;
 
 import org.junit.Test;
 
+import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
+
 import test.com.ai.paas.ipaas.dss.dssclient.base.DSSClient;
 
-import com.ai.paas.ipaas.dss.interfaces.IDSSClient;
 
 public class SaveFileStr2Test extends DSSClient {
 	private static IDSSClient iDSSClient = null;

@@ -1,7 +1,7 @@
 package test.com.ai.paas.ipaas.dss.dssclient.base;
 
 import com.ai.paas.ipaas.dss.DSSFactory;
-import com.ai.paas.ipaas.dss.interfaces.IDSSClient;
+import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
 import com.ai.paas.ipaas.uac.vo.AuthDescriptor;
 
 public class DSSClient {
