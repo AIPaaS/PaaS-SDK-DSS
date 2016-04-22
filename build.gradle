@@ -32,12 +32,16 @@ subprojects{
         compile 'com.ai:ipaas-common:0.3'
         testCompile(
                 "org.springframework:spring-test:4.1.5.RELEASE",
-                "junit:junit:4.11"
         )
+        testCompile ('junit:junit:4.12'){
+           exclude group: 'org.mongodb', module: 'bson'
+           
+        }
 
         testCompile  ('org.apache.jmeter:ApacheJMeter_junit:2.13'){
             exclude group: 'commons-math3', module: 'commons-math3'
             exclude group: 'commons-pool2', module: 'commons-pool2'
+            exclude group: 'org.mongodb', module: 'bson'
         }
 
     }

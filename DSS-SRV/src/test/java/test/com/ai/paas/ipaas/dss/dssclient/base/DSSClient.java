@@ -11,10 +11,11 @@ public class DSSClient {
 	// private static final String USER_NAME = "chenym6@asiainfo.com";
 	// private static final String PASSWORD = "1234567";
 	// private static final String SERVICE_ID = "DSS001";
-	private static final String URL = "http://10.1.228.200:14105/iPaas-Auth/service/auth";
-	private static final String PID = "06F638866A564153B2E9EB9EE5BDC6C1";
+	
+	private static final String URL = "http://10.1.228.200:14105/service-portal-uac-web/service/auth";
+	private static final String PID = "C82D5E2C2F23414896616F3F4840EB48";
 	private static final String PASSWORD = "123456";
-	private static final String SERVICE_ID = "DSS001";
+	private static final String SERVICE_ID = "DSS004";
 	private static AuthDescriptor ad = null;
 
 	public static IDSSClient getClient() throws Exception {

@@ -32,7 +32,7 @@ public class DSSClient implements IDSSClient {
 
 	public DSSClient(String addr, String database, String userName,
 			String password, String bucket) {
-		MongoCredential credential = MongoCredential.createMongoCRCredential(
+		MongoCredential credential = MongoCredential.createCredential(
 				userName, database, password.toCharArray());
 		mongoClient = new MongoClient(DSSHelper.Str2SAList(addr),
 				Arrays.asList(credential));
@@ -204,4 +204,12 @@ public class DSSClient implements IDSSClient {
 		return false;
 	}
 
+	public static void main(String[] args) {
+		IDSSClient dss = new DSSClient(
+				"10.1.228.200:37017;10.1.228.202:37017",
+				"admin", "sa", "sa", "fs");
+		byte[] byte0 = "123456789".getBytes();
+		String str1 = "thenormaltest";
+		dss.save(byte0, str1);
+	}
 }

@@ -30,7 +30,7 @@ public class TestCaseM {
 	public void read() {
 		try {
 			byte[] fileByte = iDSSClient.read("56e91e76fb3b87629f1e4f00");
-			File file = new File("/Users/liwenxian/Downloads/1/liwx.txt");
+			File file = new File("d:/dxf.txt");
 			FileOutputStream fos = new FileOutputStream(file);
 			fos.write(fileByte);
 			fos.flush();
@@ -51,7 +51,7 @@ public class TestCaseM {
 				System.out.println(id);
 				
 				byte[] fileByte = iDSSClient.read(id);
-				File file = new File("/Users/liwenxian/Downloads/1/liwx"+i+".txt");
+				File file = new File("d:/dxf"+i+".txt");
 				FileOutputStream fos = new FileOutputStream(file);
 				fos.write(fileByte);
 				fos.flush();

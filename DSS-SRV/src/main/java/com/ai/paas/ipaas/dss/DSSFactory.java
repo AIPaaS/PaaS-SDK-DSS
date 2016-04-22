@@ -40,15 +40,22 @@ public class DSSFactory {
 		log.info("Check Formal Parameter AuthDescriptor ...");
 		Assert.notNull(ad, "com.ai.paas.ipaas.common.auth_info_null");
 		Assert.notNull(ad.getServiceId(), "com.ai.paas.ipaas.common.srvid_null");
+		Assert.notNull(ad.getPid(), "com.ai.paas.ipaas.common.auth_pid_null");
+		Assert.notNull(ad.getPassword(),
+				"com.ai.paas.ipaas.common.auth_passwd_null");
+		Assert.notNull(ad.getAuthAdress(),
+				"com.ai.paas.ipaas.common.auth_addr_null");
 		String srvId = ad.getServiceId();
+		srvId = srvId.trim();
 		// 服务号要检验
 		// 传入用户描述对象，用户认证地址，服务申请号
 		// 进行用户认证
 		log.info("Check AuthResult ...");
 		// 认证通过后，判断是否存在已有实例，有，直接返回
 		// 单例标签
-		String instanceKey = ad.getPid() + "_" + ad.getServiceId();
-		if (DSSClients.containsKey(instanceKey)) {
+		String instanceKey = ad.getPid().trim() + "_"
+				+ ad.getServiceId().trim();
+		if (null != DSSClients.get(instanceKey)) {
 			DSSClient = DSSClients.get(instanceKey);
 			return DSSClient;
 		}
@@ -78,15 +85,8 @@ public class DSSFactory {
 		String password = CiperUtil.decrypt(PWD_KEY,
 				(String) DSSConfMap.get(MONGO_PASSWORD));
 		String redisHosts = (String) DSSConfMap.get(MONGO_REDIS_HOST);
-		// String DSSRWConf =
-		// confBase.getConfigFromWritable(DSS_CONFIG_PATH+"/"+srvId);
-		// String DSSRWConf =
-		// CCSComponentFactory.getConfigClient(authResult.getConfigAddr(),
-		// authResult.getConfigUser(),authResult.getConfigPasswd()).get
-		// 封装成配置对象
 		Map DSSRedisConfMap = gson.fromJson(DSSRedisConf, Map.class);
 		String userId = authResult.getUserId();
-		System.out.println();
 		DSSClient = new DSSSrvClient(hosts, userId, username, password,
 				redisHosts, DSSRedisConfMap);
 		DSSClients.put(instanceKey, DSSClient);

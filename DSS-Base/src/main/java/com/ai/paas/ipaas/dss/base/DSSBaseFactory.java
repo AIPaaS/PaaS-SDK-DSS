@@ -34,6 +34,7 @@ public class DSSBaseFactory {
 		IDSSClient DSSClient = null;
 		log.info("Check Formal Parameter AuthDescriptor ...");
 		Assert.notNull(mongoInfo, "mongoInfo is null");
+		mongoInfo = mongoInfo.trim();
 		if (DSSClients.containsKey(mongoInfo)) {
 			DSSClient = DSSClients.get(mongoInfo);
 			return DSSClient;
@@ -48,11 +49,17 @@ public class DSSBaseFactory {
 		String bucket = null;
 		if (null != in.get("bucket")) {
 			bucket = in.get("bucket").getAsString();
+
 		}
 		Assert.notNull(mongoServer, "mongoServer is null");
 		Assert.notNull(database, "database is null");
 		Assert.notNull(userName, "userName is null");
 		Assert.notNull(password, "password is null");
+		mongoServer = mongoServer.trim();
+		database = database.trim();
+		userName = userName.trim();
+		password.trim();
+		bucket = bucket.trim();
 		DSSClient = new DSSClient(mongoServer, database, userName, password,
 				bucket);
 		DSSClients.put(mongoInfo, DSSClient);

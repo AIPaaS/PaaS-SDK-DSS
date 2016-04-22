@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import redis.clients.jedis.JedisCluster;
 
 import com.ai.paas.ipaas.dss.base.DSSBaseFactory;
+import com.ai.paas.ipaas.dss.base.MongoInfo;
 import com.ai.paas.ipaas.dss.base.exception.DSSRuntimeException;
 import com.ai.paas.ipaas.dss.base.impl.DSSClient;
 import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
@@ -35,14 +36,17 @@ public class DSSSrvClient implements IDSSClient {
 	public DSSSrvClient(String hosts, String userId, String username,
 			String password, String redisHosts,
 			Map<String, String> DSSRedisConfMap) throws Exception {
-		String mongoInfo = null;
 		this.bucket = DSSRedisConfMap.get(MONGO_DB_NAME);
 		this.fileLimitSize = Double.parseDouble(DSSRedisConfMap
 				.get(MONGO_FILE_LIMIT_SIZE));
 		this.dbSize = Double.parseDouble(DSSRedisConfMap.get(MONGO_DB_SIZE));
 
+		MongoInfo mongoInfo = new MongoInfo(hosts, userId, username, password,
+				bucket);
+		Gson gson = new Gson();
 		// 需要变成json格式
-		dssClient = (DSSClient) DSSBaseFactory.getClient(mongoInfo);
+		dssClient = (DSSClient) DSSBaseFactory
+				.getClient(gson.toJson(mongoInfo));
 
 		this.jc = DSSSrvHelper.getRedis(redisHosts);
 		this.redisKey = userId + bucket;
