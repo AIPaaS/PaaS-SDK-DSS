@@ -1,1 +1,1 @@
-include "DSS-Base","DSS-SRV"
+include "sdk-dss-base","sdk-dss-srv"

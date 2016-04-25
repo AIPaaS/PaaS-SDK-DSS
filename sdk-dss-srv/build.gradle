@@ -2,7 +2,7 @@
 
 dependencies{
 
-	compile project(":DSS-Base")
+	compile project(":sdk-dss-base")
 	compile 'redis.clients:jedis:2.8.1'
 	compile 'com.ai:ipaas-ccs-inner:0.3'
 	compile 'com.ai:ipaas-uac:0.3'

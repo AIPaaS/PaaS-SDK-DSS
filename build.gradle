@@ -4,8 +4,8 @@ allprojects{
     apply plugin: 'maven-publish'
 
     ext {
-    	//moduleVersion="0.3-SNAPSHOT"
-        moduleVersion="0.3"
+    	moduleVersion="0.3-SNAPSHOT"
+        //moduleVersion="0.3"
         publishUserName = "devadm"
         publishUserPassword = "Devadm@1212"
         publishSnapShotsURL="http://10.1.228.199:18081/nexus/content/repositories/snapshots/"
@@ -50,7 +50,7 @@ subprojects{
 }
 
 
-project("DSS-Base"){
+project("sdk-dss-base"){
     project.ext {
         moduleName = "ipaas-dss-base"
     }
@@ -67,7 +67,7 @@ project("DSS-Base"){
     publish.dependsOn build
 }
 
-project("DSS-SRV"){
+project("sdk-dss-srv"){
     project.ext {
         moduleName = "ipaas-dss"
     }
