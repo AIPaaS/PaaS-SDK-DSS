@@ -36,13 +36,14 @@ subprojects{
         )
         testCompile ('junit:junit:4.12'){
            exclude group: 'org.mongodb', module: 'bson'
-           
+           exclude group: 'org.mongodb', module: 'mongo-java-driver'
         }
 
         testCompile  ('org.apache.jmeter:ApacheJMeter_junit:2.13'){
             exclude group: 'commons-math3', module: 'commons-math3'
             exclude group: 'commons-pool2', module: 'commons-pool2'
             exclude group: 'org.mongodb', module: 'bson'
+            exclude group: 'org.mongodb', module: 'mongo-java-driver'
         }
 
     }
