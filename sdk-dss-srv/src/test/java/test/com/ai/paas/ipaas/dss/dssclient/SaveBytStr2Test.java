@@ -21,6 +21,7 @@ public class SaveBytStr2Test extends DSSClient {
 	public void save() {
 		byte[] byte0 = "123456789".getBytes();
 		String str1 = "thenormaltest";
+		@SuppressWarnings("unused")
 		String key = "555b04fa3943e1e4d58a39e5";
 		System.out.println(iDSSClient.save(byte0, str1));
 	}

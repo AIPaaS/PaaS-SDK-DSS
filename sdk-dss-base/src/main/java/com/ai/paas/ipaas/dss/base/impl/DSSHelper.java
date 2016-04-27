@@ -3,12 +3,13 @@ package com.ai.paas.ipaas.dss.base.impl;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.ai.paas.ipaas.PaaSConstant;
 import com.mongodb.ServerAddress;
-
 
 public class DSSHelper {
 
@@ -34,11 +35,50 @@ public class DSSHelper {
 	}
 
 	public static long getFileSize(File file) {
+		if (null == file)
+			return 0;
 		return Long.parseLong(file.length() + "");
 	}
 
 	public static long getFileSize(byte[] file) {
+		if (null == file)
+			return 0;
 		return Long.parseLong(file.length + "");
+	}
+
+	@SuppressWarnings("rawtypes")
+	public static long getListSize(List list) {
+		if (null == list)
+			return 0;
+		long total = 0;
+		for (int i = 0; i < list.size(); i++) {
+			try {
+				total += list.get(i).toString()
+						.getBytes(PaaSConstant.CHARSET_UTF8).length;
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
+		}
+		return total;
+	}
+
+	@SuppressWarnings("rawtypes")
+	public static long getSize(Object obj) {
+		if (null == obj)
+			return 0;
+		if (obj instanceof File)
+			return getFileSize((File) obj);
+		else if (obj instanceof byte[])
+			return getFileSize((byte[]) obj);
+		else if (obj instanceof List)
+			return getListSize((List) obj);
+		else
+			try {
+				return obj.toString().getBytes(PaaSConstant.CHARSET_UTF8).length;
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+				return 0;
+			}
 	}
 
 	public static long okSize(long a, long b) {
@@ -67,6 +107,5 @@ public class DSSHelper {
 				.doubleValue();
 		return Math.round(result);
 	}
-
 
 }

@@ -8,6 +8,7 @@ import com.ai.paas.ipaas.uac.vo.AuthDescriptor;
 
 public class DSSFactoryTest {
 	private static AuthDescriptor ad = null;
+	@SuppressWarnings("unused")
 	private static IDSSClient dc = null;
 	private static final String URL = "http://10.1.228.198:14821/iPaas-Auth/service/check";
 	private static final String USER_NAME = "zhanglei11@asiainfo.com";

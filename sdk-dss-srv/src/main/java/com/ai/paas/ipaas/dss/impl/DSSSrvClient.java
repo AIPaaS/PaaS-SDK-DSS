@@ -15,8 +15,8 @@ import redis.clients.jedis.JedisCluster;
 import com.ai.paas.ipaas.dss.base.DSSBaseFactory;
 import com.ai.paas.ipaas.dss.base.MongoInfo;
 import com.ai.paas.ipaas.dss.base.exception.DSSRuntimeException;
-import com.ai.paas.ipaas.dss.base.impl.DSSClient;
 import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
+import com.ai.paas.ipaas.util.Assert;
 import com.google.gson.Gson;
 
 public class DSSSrvClient implements IDSSClient {
@@ -31,7 +31,7 @@ public class DSSSrvClient implements IDSSClient {
 	private double fileLimitSize;
 	private JedisCluster jc;
 	private String redisKey;
-	private DSSClient dssClient = null;
+	private IDSSClient dssClient = null;
 
 	public DSSSrvClient(String hosts, String userId, String username,
 			String password, String redisHosts,
@@ -45,8 +45,8 @@ public class DSSSrvClient implements IDSSClient {
 				bucket);
 		Gson gson = new Gson();
 		// 需要变成json格式
-		dssClient = (DSSClient) DSSBaseFactory
-				.getClient(gson.toJson(mongoInfo));
+		dssClient = (IDSSClient) DSSBaseFactory.getClient(gson
+				.toJson(mongoInfo));
 
 		this.jc = DSSSrvHelper.getRedis(redisHosts);
 		this.redisKey = userId + bucket;
@@ -54,26 +54,14 @@ public class DSSSrvClient implements IDSSClient {
 
 	@Override
 	public String save(File file, String remark) {
-		long usedSize = jc.incrBy(redisKey, 0);
-		if (DSSSrvHelper.okSize(DSSSrvHelper.M2byte(fileLimitSize),
-				DSSSrvHelper.getFileSize(file)) < 0) {
-			log.error("file too large");
-			throw new DSSRuntimeException(new Exception("file too large"));
-		}
-		if (DSSSrvHelper.okSize(
-				DSSSrvHelper.okSize(DSSSrvHelper.M2byte(dbSize), usedSize),
-				DSSSrvHelper.getFileSize(file)) < 0) {
-			log.error("left size not enough");
-			throw new DSSRuntimeException(new Exception("left size not enough"));
-		}
+		judgeSize(file);
 		try {
 			String fileId = dssClient.save(file, remark);
 			jc.incrBy(redisKey,
 					Integer.parseInt(DSSSrvHelper.getFileSize(file) + ""));
 			return fileId;
 		} catch (Exception e) {
-			log.error(e.toString());
-			log.error(e);
+			log.error("", e);
 			throw new DSSRuntimeException(e);
 		}
 	}
@@ -84,25 +72,14 @@ public class DSSSrvClient implements IDSSClient {
 			log.error("bytes illegal");
 			throw new DSSRuntimeException(new Exception("bytes illegal"));
 		}
-		long usedSize = jc.incrBy(redisKey, 0);
-		if (DSSSrvHelper.okSize(DSSSrvHelper.M2byte(fileLimitSize),
-				DSSSrvHelper.getFileSize(bytes)) < 0) {
-			log.error("file too large");
-			throw new DSSRuntimeException(new Exception("file too large"));
-		}
-		if (DSSSrvHelper.okSize(
-				DSSSrvHelper.okSize(DSSSrvHelper.M2byte(dbSize), usedSize),
-				DSSSrvHelper.getFileSize(bytes)) < 0) {
-			log.error("left size not enough");
-			throw new DSSRuntimeException(new Exception("left size not enough"));
-		}
+		judgeSize(bytes);
 		try {
 			String fileId = dssClient.save(bytes, remark);
 			jc.incrBy(redisKey,
 					Integer.parseInt(DSSSrvHelper.getFileSize(bytes) + ""));
 			return fileId;
 		} catch (Exception e) {
-			log.error(e.toString());
+			log.error("", e);
 			throw new DSSRuntimeException(e);
 		}
 	}
@@ -116,14 +93,13 @@ public class DSSSrvClient implements IDSSClient {
 		try {
 			return dssClient.read(id);
 		} catch (Exception e) {
-			log.error(e.toString());
+			log.error("", e);
 			throw new DSSRuntimeException(e);
 		}
 	}
 
 	@Override
 	public boolean delete(String id) {
-		// long usedSize = jc.incrBy(redisKey,0);
 		if (id == null || "".equals(id)) {
 			log.error("id illegal");
 			throw new DSSRuntimeException(new Exception("id or bytes illegal"));
@@ -136,24 +112,11 @@ public class DSSSrvClient implements IDSSClient {
 
 	@Override
 	public void update(String id, byte[] bytes) {
-		long usedSize = jc.incrBy(redisKey, 0);
 		if (bytes == null || id == null || "".equals(id)) {
 			log.error("id or bytes illegal");
 			throw new DSSRuntimeException(new Exception("id or bytes illegal"));
 		}
-		if (DSSSrvHelper.okSize(DSSSrvHelper.M2byte(fileLimitSize),
-				DSSSrvHelper.getFileSize(bytes)) < 0) {
-			log.error("file too large");
-			throw new DSSRuntimeException(new Exception("file too large"));
-		}
-		usedSize = jc.decrBy(redisKey,
-				Integer.parseInt(dssClient.getFileSize(id) + ""));
-		if (DSSSrvHelper.okSize(
-				DSSSrvHelper.okSize(DSSSrvHelper.M2byte(dbSize), usedSize),
-				DSSSrvHelper.getFileSize(bytes)) < 0) {
-			log.error("left size not enough");
-			throw new DSSRuntimeException(new Exception("left size not enough"));
-		}
+		judgeSize(bytes);
 		dssClient.delete(id);
 		dssClient.save(bytes, null);
 		jc.incrBy(redisKey,
@@ -167,25 +130,14 @@ public class DSSSrvClient implements IDSSClient {
 
 	@Override
 	public void update(String id, File file) {
-		long usedSize = jc.incrBy(redisKey, 0);
+
 		if (file == null || id == null || "".equals(id)) {
 			log.error("id or file illegal");
 			throw new DSSRuntimeException(new Exception("id or file illegal"));
 		}
-		if (DSSSrvHelper.okSize(DSSSrvHelper.M2byte(fileLimitSize),
-				DSSSrvHelper.getFileSize(file)) < 0) {
-			log.error("file too large");
-			throw new DSSRuntimeException(new Exception("file too large"));
-		}
 		long fileSize = dssClient.getFileSize(id);
-		if (DSSSrvHelper.okSize(
-				DSSSrvHelper.okSize(DSSSrvHelper.M2byte(dbSize), usedSize
-						- Integer.parseInt(fileSize + "")),
-				DSSSrvHelper.getFileSize(file)) < 0) {
-			log.error("left size not enough");
-			throw new DSSRuntimeException(new Exception("left size not enough"));
-		}
-		usedSize = jc.decrBy(redisKey, Integer.parseInt(fileSize + ""));
+		judgeSize(file);
+		jc.decrBy(redisKey, Integer.parseInt(fileSize + ""));
 		dssClient.delete(id);
 		dssClient.save(file, null);
 		jc.incrBy(redisKey,
@@ -202,6 +154,22 @@ public class DSSSrvClient implements IDSSClient {
 		return dssClient.isFileExist(id);
 	}
 
+	private void judgeSize(Object obj) {
+		long usedSize = jc.incrBy(redisKey, 0);
+		if (DSSSrvHelper.okSize(DSSSrvHelper.M2byte(fileLimitSize),
+				DSSSrvHelper.getSize(obj)) < 0) {
+			log.error("file too large");
+			throw new DSSRuntimeException(new Exception("file too large"));
+		}
+
+		if (DSSSrvHelper.okSize(
+				DSSSrvHelper.okSize(DSSSrvHelper.M2byte(dbSize), usedSize),
+				DSSSrvHelper.getSize(obj)) < 0) {
+			log.error("left size not enough");
+			throw new DSSRuntimeException(new Exception("left size not enough"));
+		}
+	}
+
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public static void main(String[] args) {
 		byte[] b = "哈喽我的asd123".getBytes();
@@ -216,5 +184,156 @@ public class DSSSrvClient implements IDSSClient {
 			bytes[i] = new BigDecimal((double) l.get(i)).byteValue();
 		}
 		System.out.println(new String(bytes));
+	}
+
+	@Override
+	public String insert(String content) {
+		Assert.notNull(content, "content is null");
+		judgeSize(content);
+		String id = dssClient.insert(content);
+		jc.incrBy(redisKey,
+				Integer.parseInt(DSSSrvHelper.getSize(content) + ""));
+		return id;
+	}
+
+	@Override
+	public String insertJSON(String doc) {
+		Assert.notNull(doc, "content is null");
+		judgeSize(doc);
+		String id = dssClient.insertJSON(doc);
+		jc.incrBy(redisKey, Integer.parseInt(DSSSrvHelper.getSize(doc) + ""));
+		return id;
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public String insert(Map doc) {
+		Assert.notNull(doc, "content is null");
+		judgeSize(doc);
+		String id = dssClient.insert(doc);
+		jc.incrBy(redisKey, Integer.parseInt(DSSSrvHelper.getSize(doc) + ""));
+		return id;
+	}
+
+	@Override
+	public void insertBatch(List<Map<String, Object>> docs) {
+		Assert.notNull(docs, "content is null");
+		judgeSize(docs);
+		dssClient.insertBatch(docs);
+		jc.incrBy(redisKey, Integer.parseInt(DSSSrvHelper.getSize(docs) + ""));
+	}
+
+	@Override
+	public int deleteById(String id) {
+		Assert.notNull(id, "id is null");
+		String content = dssClient.findById(id);
+		int rows = dssClient.deleteById(id);
+		jc.decrBy(redisKey,
+				Integer.parseInt(DSSSrvHelper.getSize(content) + ""));
+		return rows;
+	}
+
+	@Override
+	public int deleteByJson(String doc) {
+		Assert.notNull(doc, "doc is null");
+		int rows = dssClient.deleteByJson(doc);
+		return rows;
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public int deleteByMap(Map doc) {
+		Assert.notNull(doc, "doc is null");
+		int rows = dssClient.deleteByMap(doc);
+		return rows;
+	}
+
+	@Override
+	public int deleteAll() {
+		int rows = dssClient.deleteAll();
+		return rows;
+	}
+
+	@Override
+	public int deleteBatch(List<Map<String, Object>> docs) {
+		Assert.notNull(docs, "docs is null");
+		int rows = dssClient.deleteBatch(docs);
+		return rows;
+	}
+
+	@Override
+	public int updateById(String id, String doc) {
+		Assert.notNull(id, "id is null");
+		Assert.notNull(doc, "doc is null");
+		int rows = dssClient.updateById(id, doc);
+		return rows;
+	}
+
+	@Override
+	public int update(String query, String doc) {
+
+		Assert.notNull(query, "query is null");
+		Assert.notNull(doc, "doc is null");
+		int rows = dssClient.update(query, doc);
+		return rows;
+	}
+
+	@Override
+	public int updateOrInsert(String query, String doc) {
+		Assert.notNull(query, "query is null");
+		Assert.notNull(doc, "doc is null");
+		int rows = dssClient.updateOrInsert(query, doc);
+		return rows;
+	}
+
+	@Override
+	public String findById(String id) {
+		Assert.notNull(id, "id is null");
+		return dssClient.findById(id);
+	}
+
+	@SuppressWarnings("rawtypes")
+	@Override
+	public String findOne(Map doc) {
+		Assert.notNull(doc, "doc is null");
+		if(doc.size()<=0)
+			throw new IllegalArgumentException();
+		return dssClient.findOne(doc);
+	}
+
+	@Override
+	public String find(String query) {
+		Assert.notNull(query, "query is null");
+		return dssClient.find(query);
+	}
+
+	@Override
+	public String query(String query, int pageNumber, int pageSize) {
+		Assert.notNull(query, "query is null");
+		return dssClient.query(query, pageNumber, pageSize);
+	}
+
+	@Override
+	public long getCount(String query) {
+		Assert.notNull(query, "query is null");
+		return dssClient.getCount(query);
+	}
+
+	@Override
+	public void addIndex(String field, boolean unique) {
+		Assert.notNull(field, "field is null");
+		dssClient.addIndex(field, unique);
+	}
+
+	@Override
+	public void dropIndex(String field) {
+		Assert.notNull(field, "field is null");
+		dssClient.dropIndex(field);
+	}
+
+	@Override
+	public boolean isIndexExist(String field) {
+		Assert.notNull(field, "field is null");
+		return dssClient.isIndexExist(field);
 	}
 }
