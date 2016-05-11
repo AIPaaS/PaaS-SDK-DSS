@@ -234,5 +234,11 @@ public interface IDSSClient {
 	 * @return
 	 */
 	public abstract boolean isIndexExist(String field);
+	
+	/**
+	 * 获取当前的存储大小
+	 * @return 返回的大小为字节数，且只是数据和文件大小的和
+	 */
+	public abstract Long getSize();
 
 }

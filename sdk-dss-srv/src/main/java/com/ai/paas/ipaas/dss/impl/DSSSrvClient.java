@@ -50,6 +50,13 @@ public class DSSSrvClient implements IDSSClient {
 
 		this.jc = DSSSrvHelper.getRedis(redisHosts);
 		this.redisKey = userId + bucket;
+		// 此处需要同步一下mongodb已使用的数据到redis中去，以免redis重启丢失，同时进行校正
+		long size = dssClient.getSize();
+		if (size > 0) {
+			System.out.println(jc.get(redisKey));
+			jc.set(redisKey, size + "");
+			System.out.println(jc.get(redisKey));
+		}
 	}
 
 	@Override
@@ -296,7 +303,7 @@ public class DSSSrvClient implements IDSSClient {
 	@Override
 	public String findOne(Map doc) {
 		Assert.notNull(doc, "doc is null");
-		if(doc.size()<=0)
+		if (doc.size() <= 0)
 			throw new IllegalArgumentException();
 		return dssClient.findOne(doc);
 	}
@@ -335,5 +342,10 @@ public class DSSSrvClient implements IDSSClient {
 	public boolean isIndexExist(String field) {
 		Assert.notNull(field, "field is null");
 		return dssClient.isIndexExist(field);
+	}
+
+	@Override
+	public Long getSize() {
+		return dssClient.getSize();
 	}
 }

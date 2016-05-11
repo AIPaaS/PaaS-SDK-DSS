@@ -32,6 +32,8 @@ public class SaveBytStr2Test extends DSSClient {
 		byte[] byte0 = null;
 		String str1 = "thenormaltest";
 		iDSSClient.save(byte0, str1);
+		iDSSClient.insert("this is a test");
+		iDSSClient.insert("this is a test1111");
 	}
 
 	/*** null测试 */

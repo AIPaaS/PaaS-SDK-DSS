@@ -16,6 +16,7 @@ import com.ai.paas.ipaas.dss.base.exception.DSSRuntimeException;
 import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
 import com.google.gson.Gson;
 import com.mongodb.BasicDBObject;
+import com.mongodb.CommandResult;
 import com.mongodb.DB;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
@@ -43,9 +44,9 @@ public class DSSClient implements IDSSClient {
 				database, password.toCharArray());
 		mongoClient = new MongoClient(DSSHelper.Str2SAList(addr),
 				Arrays.asList(credential));
-		db = mongoClient.getDB(database);
-		// 默认表就是数据库名
-		defaultCollection = database;
+		db = mongoClient.getDB(bucket);
+		// 默认表就是服务标识
+		defaultCollection = bucket;
 		gson = new Gson();
 		if (null != bucket && !"".equals(bucket.trim())) {
 			this.bucket = bucket;
@@ -559,7 +560,7 @@ public class DSSClient implements IDSSClient {
 	@Override
 	public void addIndex(String field, boolean unique) {
 		String indexName = "idx_" + field;
-		DBObject dbo = new BasicDBObject(indexName,1);
+		DBObject dbo = new BasicDBObject(indexName, 1);
 		db.getCollection(defaultCollection).createIndex(dbo, indexName, unique);
 	}
 
@@ -591,6 +592,21 @@ public class DSSClient implements IDSSClient {
 			}
 			return found;
 		}
+	}
+
+	public Long getSize() {
+		long size = -1;
+		CommandResult result = db.getStats();
+		if (null != result) {
+			double dataSize = 0;
+			if (null != result.get("dataSize"))
+				dataSize = result.getDouble("dataSize");
+			double fileSize = 0;
+			if (null != result.get("fileSize"))
+				fileSize = result.getDouble("fileSize");
+			size = Math.round(dataSize + fileSize);
+		}
+		return size;
 	}
 
 	public static void main(String[] args) {
