@@ -44,7 +44,7 @@ public class DSSClient implements IDSSClient {
 				database, password.toCharArray());
 		mongoClient = new MongoClient(DSSHelper.Str2SAList(addr),
 				Arrays.asList(credential));
-		db = mongoClient.getDB(bucket);
+		db = mongoClient.getDB(database);
 		// 默认表就是服务标识
 		defaultCollection = bucket;
 		gson = new Gson();
