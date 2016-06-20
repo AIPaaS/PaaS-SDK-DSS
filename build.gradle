@@ -4,7 +4,7 @@ allprojects{
     apply plugin: 'maven-publish'
 
     ext {
-    	moduleVersion="0.3-SNAPSHOT"
+    	//moduleVersion="0.3-SNAPSHOT"
         //moduleVersion="0.3"
         publishUserName = "devadm"
         publishUserPassword = "Devadm@1212"
