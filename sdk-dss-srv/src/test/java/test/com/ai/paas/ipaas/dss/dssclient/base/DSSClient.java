@@ -12,8 +12,8 @@ public class DSSClient {
 	// private static final String PASSWORD = "1234567";
 	// private static final String SERVICE_ID = "DSS001";
 	
-	private static final String URL = "http://10.1.228.200:14105/service-portal-uac-web/service/auth";
-	private static final String PID = "0A8111DB280044528DF309D501DFFF6A";
+	private static final String URL = "http://10.1.245.4:19811/service-portal-uac-web/service/auth";
+	private static final String PID = "B1F464FC22E745D79EE67B2691112795";
 	private static final String PASSWORD = "123456";
 	private static final String SERVICE_ID = "DSS001";
 	private static AuthDescriptor ad = null;
