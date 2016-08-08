@@ -596,16 +596,22 @@ public class DSSClient implements IDSSClient {
 
 	public Long getSize() {
 		long size = -1;
-		CommandResult result = db.getStats();
-		if (null != result) {
-			double dataSize = 0;
-			if (null != result.get("dataSize"))
-				dataSize = result.getDouble("dataSize");
-			double fileSize = 0;
-			if (null != result.get("fileSize"))
-				fileSize = result.getDouble("fileSize");
-			size = Math.round(dataSize + fileSize);
+		// 此处需要取得多个的大小
+		CommandResult tableResult = db.getCollection(defaultCollection)
+				.getStats();
+		CommandResult fileResult = db.getCollection(
+				defaultCollection + ".chunks").getStats();
+		double dataSize = 0;
+		double fileSize = 0;
+		if (null != tableResult) {
+			if (null != tableResult.get("size"))
+				dataSize = tableResult.getDouble("size");
 		}
+		if (null != fileResult) {
+			if (null != fileResult.get("size"))
+				fileSize = fileResult.getDouble("size");
+		}
+		size = Math.round(dataSize + fileSize);
 		return size;
 	}
 
