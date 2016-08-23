@@ -26,7 +26,7 @@ allprojects{
 }
 
 subprojects{
-    [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+    [compileJava, compileTestJava,javadoc]*.options*.encoding = 'UTF-8'
 
     repositories {
         maven{ url "http://10.1.228.199:18081/nexus/content/groups/public/"  }
@@ -67,7 +67,24 @@ project("sdk-dss-base"){
             attributes 'packageName': moduleName, 'Built-By': builtBy,'create-date': new Date().format('yyyy-MM-dd HH:mm:ss')
         }
     }
-
+	task sourcesJar(type: Jar, dependsOn: classes) {
+		baseName moduleName
+	    version moduleVersion
+	    classifier = 'sources'
+	    from sourceSets.main.allSource
+	}
+	
+	task javadocJar(type: Jar, dependsOn: javadoc) {
+		baseName moduleName
+	    version moduleVersion
+	    classifier = 'javadoc'
+	    from javadoc.destinationDir
+	}
+	
+	artifacts {
+	    archives sourcesJar
+	    archives javadocJar
+	}
     publish.dependsOn build
 }
 
@@ -85,6 +102,24 @@ project("sdk-dss-srv"){
         }
     }
 
+	task sourcesJar(type: Jar, dependsOn: classes) {
+		baseName moduleName
+	    version moduleVersion
+	    classifier = 'sources'
+	    from sourceSets.main.allSource
+	}
+	
+	task javadocJar(type: Jar, dependsOn: javadoc) {
+		baseName moduleName
+	    version moduleVersion
+	    classifier = 'javadoc'
+	    from javadoc.destinationDir
+	}
+	
+	artifacts {
+	    archives sourcesJar
+	    archives javadocJar
+	}
     publish.dependsOn build
 }
 
