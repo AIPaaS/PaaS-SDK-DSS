@@ -21,6 +21,34 @@ jar {
 
 publishing {
 	publications {
+	   mavenJar(MavenPublication) {
+        	groupId group
+        	artifactId "${moduleName}"
+            artifact sourcesJar
+            version moduleVersion
+            pom.withXml {
+				asNode().children().last() + {
+					delegate.dependencies {
+						delegate.dependency {
+							delegate.groupId("com.ai")
+							delegate.artifactId("ipaas-common")
+							delegate.version("0.3")
+						}
+						delegate.dependency {
+							delegate.groupId("org.apache.logging.log4j")
+							delegate.artifactId("log4j-api")
+							delegate.version("2.2")
+						}
+						delegate.dependency {
+							delegate.groupId("org.mongodb")
+							delegate.artifactId("mongodb-driver")
+							delegate.version("3.0.2")
+						}
+					}
+				}
+			}
+		}
+            
 		publishing.publications.create("${moduleName}", MavenPublication) {
 			groupId group
 			artifactId moduleName
