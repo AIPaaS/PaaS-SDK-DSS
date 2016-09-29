@@ -21,7 +21,9 @@ import com.mongodb.DB;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
+import com.mongodb.WriteConcern;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
 import com.mongodb.gridfs.GridFSInputFile;
@@ -40,10 +42,16 @@ public class DSSClient implements IDSSClient {
 
 	public DSSClient(String addr, String database, String userName,
 			String password, String bucket) {
+		 MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
+
+	     //build the connection options  
+	    builder.maxConnectionIdleTime(60000);//set the max wait time in (ms)
+	    MongoClientOptions opts = builder.build();
 		MongoCredential credential = MongoCredential.createCredential(userName,
 				database, password.toCharArray());
 		mongoClient = new MongoClient(DSSHelper.Str2SAList(addr),
-				Arrays.asList(credential));
+				Arrays.asList(credential),opts);
+		mongoClient.setWriteConcern(WriteConcern.JOURNALED);
 		db = mongoClient.getDB(database);
 		// 默认表就是服务标识
 		defaultCollection = bucket;
