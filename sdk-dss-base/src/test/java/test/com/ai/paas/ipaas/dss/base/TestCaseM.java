@@ -17,8 +17,12 @@ public class TestCaseM {
 
 	@Before
 	public void setUp() throws Exception {
+//		iDSSClient = DSSBaseFactory
+//				.getClient("{\"mongoServer\":\"10.1.245.5:37017;10.1.245.6:37017;10.1.245.7:37017\",\"database\":\"8EA4FD928D72469DA05D99004B260DF4\",\"userName\":\"8EA4FD928D72469DA05D99004B260DF4\",\"password\":\"563656\",\"bucket\":\"DSS001\"}");
+		
 		iDSSClient = DSSBaseFactory
-				.getClient("{\"mongoServer\":\"10.1.245.5:37017;10.1.245.6:37017;10.1.245.7:37017\",\"database\":\"8EA4FD928D72469DA05D99004B260DF4\",\"userName\":\"8EA4FD928D72469DA05D99004B260DF4\",\"password\":\"563656\",\"bucket\":\"DSS001\"}");
+		.getClient("{\"mongoServer\":\"10.19.13.18:27017;10.19.13.19:27017;10.19.13.20:27017\",\"database\":\"dss001\",\"userName\":\"dss001user\",\"password\":\"dss001pwd\",\"bucket\":\"DSS001\"}");
+
 	}
 
 	@Test
