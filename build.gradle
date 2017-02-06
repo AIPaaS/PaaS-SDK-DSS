@@ -76,10 +76,26 @@ project("sdk-dss-base"){
 	    classifier = 'sources'
 	    from sourceSets.main.allSource
 	}
+	javadoc {
+		exclude               "**/internal/**"
+		failOnError				false
+		options.memberLevel = JavadocMemberLevel.PUBLIC
+		
+		options.addStringOption("Xdoclint", "none")
+		
+	}
 	
+	task javadocJar(type: Jar, dependsOn: javadoc) {
+		baseName moduleName
+		version moduleVersion
+		classifier = 'javadoc'
+	
+		from javadoc.destinationDir
+	}
 	
 	artifacts {
 	    archives sourcesJar
+		archives javadocJar
 	}
     publish.dependsOn build
 }
@@ -104,9 +120,26 @@ project("sdk-dss-srv"){
 	    classifier = 'sources'
 	    from sourceSets.main.allSource
 	}
+	javadoc {
+		exclude               "**/internal/**"
+		failOnError				false
+		options.memberLevel = JavadocMemberLevel.PUBLIC
+		
+		options.addStringOption("Xdoclint", "none")
+		
+	}
+	
+	task javadocJar(type: Jar, dependsOn: javadoc) {
+		baseName moduleName
+		version moduleVersion
+		classifier = 'javadoc'
+	
+		from javadoc.destinationDir
+	}
 	
 	artifacts {
 	    archives sourcesJar
+		archives javadocJar
 	}
     publish.dependsOn build
 }
