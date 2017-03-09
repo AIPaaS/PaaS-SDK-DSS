@@ -14,7 +14,7 @@ import com.mongodb.ServerAddress;
 public class DSSHelper {
 
 	public static List<ServerAddress> Str2SAList(String hosts) {
-		String[] hostsArray = hosts.split(";");
+		String[] hostsArray = hosts.split(";|,");
 		List<ServerAddress> saList = new ArrayList<>();
 		String[] address = null;
 		for (String host : hostsArray) {

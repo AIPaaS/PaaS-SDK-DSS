@@ -33,20 +33,16 @@ public class DSSSrvClient implements IDSSClient {
 	private String redisKey;
 	private IDSSClient dssClient = null;
 
-	public DSSSrvClient(String hosts, String userId, String username,
-			String password, String redisHosts,
+	public DSSSrvClient(String hosts, String userId, String username, String password, String redisHosts,
 			Map<String, String> DSSRedisConfMap) throws Exception {
 		this.bucket = DSSRedisConfMap.get(MONGO_DB_NAME);
-		this.fileLimitSize = Double.parseDouble(DSSRedisConfMap
-				.get(MONGO_FILE_LIMIT_SIZE));
+		this.fileLimitSize = Double.parseDouble(DSSRedisConfMap.get(MONGO_FILE_LIMIT_SIZE));
 		this.dbSize = Double.parseDouble(DSSRedisConfMap.get(MONGO_DB_SIZE));
 
-		MongoInfo mongoInfo = new MongoInfo(hosts, userId, username, password,
-				bucket);
+		MongoInfo mongoInfo = new MongoInfo(hosts, userId, username, password, bucket);
 		Gson gson = new Gson();
 		// 需要变成json格式
-		dssClient = (IDSSClient) DSSBaseFactory.getClient(gson
-				.toJson(mongoInfo));
+		dssClient = (IDSSClient) DSSBaseFactory.getClient(gson.toJson(mongoInfo));
 
 		this.jc = DSSSrvHelper.getRedis(redisHosts);
 		this.redisKey = userId + bucket;
@@ -64,8 +60,7 @@ public class DSSSrvClient implements IDSSClient {
 		judgeSize(file);
 		try {
 			String fileId = dssClient.save(file, remark);
-			jc.incrBy(redisKey,
-					Integer.parseInt(DSSSrvHelper.getFileSize(file) + ""));
+			jc.incrBy(redisKey, Integer.parseInt(DSSSrvHelper.getFileSize(file) + ""));
 			return fileId;
 		} catch (Exception e) {
 			log.error("", e);
@@ -82,8 +77,7 @@ public class DSSSrvClient implements IDSSClient {
 		judgeSize(bytes);
 		try {
 			String fileId = dssClient.save(bytes, remark);
-			jc.incrBy(redisKey,
-					Integer.parseInt(DSSSrvHelper.getFileSize(bytes) + ""));
+			jc.incrBy(redisKey, Integer.parseInt(DSSSrvHelper.getFileSize(bytes) + ""));
 			return fileId;
 		} catch (Exception e) {
 			log.error("", e);
@@ -118,16 +112,15 @@ public class DSSSrvClient implements IDSSClient {
 	}
 
 	@Override
-	public void update(String id, byte[] bytes) {
+	public String update(String id, byte[] bytes) {
 		if (bytes == null || id == null || "".equals(id)) {
 			log.error("id or bytes illegal");
 			throw new DSSRuntimeException(new Exception("id or bytes illegal"));
 		}
 		judgeSize(bytes);
 		dssClient.delete(id);
-		dssClient.save(bytes, null);
-		jc.incrBy(redisKey,
-				Integer.parseInt(DSSSrvHelper.getFileSize(bytes) + ""));
+		jc.incrBy(redisKey, Integer.parseInt(DSSSrvHelper.getFileSize(bytes) + ""));
+		return dssClient.save(bytes, null);
 	}
 
 	@Override
@@ -136,7 +129,7 @@ public class DSSSrvClient implements IDSSClient {
 	}
 
 	@Override
-	public void update(String id, File file) {
+	public String update(String id, File file) {
 
 		if (file == null || id == null || "".equals(id)) {
 			log.error("id or file illegal");
@@ -146,9 +139,9 @@ public class DSSSrvClient implements IDSSClient {
 		judgeSize(file);
 		jc.decrBy(redisKey, Integer.parseInt(fileSize + ""));
 		dssClient.delete(id);
-		dssClient.save(file, null);
-		jc.incrBy(redisKey,
-				Integer.parseInt(DSSSrvHelper.getFileSize(file) + ""));
+		String newid = dssClient.save(file, null);
+		jc.incrBy(redisKey, Integer.parseInt(DSSSrvHelper.getFileSize(file) + ""));
+		return newid;
 	}
 
 	@Override
@@ -163,14 +156,12 @@ public class DSSSrvClient implements IDSSClient {
 
 	private void judgeSize(Object obj) {
 		long usedSize = jc.incrBy(redisKey, 0);
-		if (DSSSrvHelper.okSize(DSSSrvHelper.M2byte(fileLimitSize),
-				DSSSrvHelper.getSize(obj)) < 0) {
+		if (DSSSrvHelper.okSize(DSSSrvHelper.M2byte(fileLimitSize), DSSSrvHelper.getSize(obj)) < 0) {
 			log.error("file too large");
 			throw new DSSRuntimeException(new Exception("file too large"));
 		}
 
-		if (DSSSrvHelper.okSize(
-				DSSSrvHelper.okSize(DSSSrvHelper.M2byte(dbSize), usedSize),
+		if (DSSSrvHelper.okSize(DSSSrvHelper.okSize(DSSSrvHelper.M2byte(dbSize), usedSize),
 				DSSSrvHelper.getSize(obj)) < 0) {
 			log.error("left size not enough");
 			throw new DSSRuntimeException(new Exception("left size not enough"));
@@ -198,8 +189,7 @@ public class DSSSrvClient implements IDSSClient {
 		Assert.notNull(content, "content is null");
 		judgeSize(content);
 		String id = dssClient.insert(content);
-		jc.incrBy(redisKey,
-				Integer.parseInt(DSSSrvHelper.getSize(content) + ""));
+		jc.incrBy(redisKey, Integer.parseInt(DSSSrvHelper.getSize(content) + ""));
 		return id;
 	}
 
@@ -231,65 +221,64 @@ public class DSSSrvClient implements IDSSClient {
 	}
 
 	@Override
-	public int deleteById(String id) {
+	public long deleteById(String id) {
 		Assert.notNull(id, "id is null");
 		String content = dssClient.findById(id);
-		int rows = dssClient.deleteById(id);
-		jc.decrBy(redisKey,
-				Integer.parseInt(DSSSrvHelper.getSize(content) + ""));
+		long rows = dssClient.deleteById(id);
+		jc.decrBy(redisKey, Integer.parseInt(DSSSrvHelper.getSize(content) + ""));
 		return rows;
 	}
 
 	@Override
-	public int deleteByJson(String doc) {
+	public long deleteByJson(String doc) {
 		Assert.notNull(doc, "doc is null");
-		int rows = dssClient.deleteByJson(doc);
+		long rows = dssClient.deleteByJson(doc);
 		return rows;
 	}
 
 	@SuppressWarnings("rawtypes")
 	@Override
-	public int deleteByMap(Map doc) {
+	public long deleteByMap(Map doc) {
 		Assert.notNull(doc, "doc is null");
-		int rows = dssClient.deleteByMap(doc);
+		long rows = dssClient.deleteByMap(doc);
 		return rows;
 	}
 
 	@Override
-	public int deleteAll() {
-		int rows = dssClient.deleteAll();
+	public long deleteAll() {
+		long rows = dssClient.deleteAll();
 		return rows;
 	}
 
 	@Override
-	public int deleteBatch(List<Map<String, Object>> docs) {
+	public long deleteBatch(List<Map<String, Object>> docs) {
 		Assert.notNull(docs, "docs is null");
-		int rows = dssClient.deleteBatch(docs);
+		long rows = dssClient.deleteBatch(docs);
 		return rows;
 	}
 
 	@Override
-	public int updateById(String id, String doc) {
+	public long updateById(String id, String doc) {
 		Assert.notNull(id, "id is null");
 		Assert.notNull(doc, "doc is null");
-		int rows = dssClient.updateById(id, doc);
+		long rows = dssClient.updateById(id, doc);
 		return rows;
 	}
 
 	@Override
-	public int update(String query, String doc) {
+	public long update(String query, String doc) {
 
 		Assert.notNull(query, "query is null");
 		Assert.notNull(doc, "doc is null");
-		int rows = dssClient.update(query, doc);
+		long rows = dssClient.update(query, doc);
 		return rows;
 	}
 
 	@Override
-	public int updateOrInsert(String query, String doc) {
+	public long upsert(String query, String doc) {
 		Assert.notNull(query, "query is null");
 		Assert.notNull(doc, "doc is null");
-		int rows = dssClient.updateOrInsert(query, doc);
+		long rows = dssClient.upsert(query, doc);
 		return rows;
 	}
 
@@ -301,11 +290,11 @@ public class DSSSrvClient implements IDSSClient {
 
 	@SuppressWarnings("rawtypes")
 	@Override
-	public String findOne(Map doc) {
+	public String find(Map doc) {
 		Assert.notNull(doc, "doc is null");
 		if (doc.size() <= 0)
 			throw new IllegalArgumentException();
-		return dssClient.findOne(doc);
+		return dssClient.find(doc);
 	}
 
 	@Override
@@ -320,6 +309,7 @@ public class DSSSrvClient implements IDSSClient {
 		return dssClient.query(query, pageNumber, pageSize);
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public long getCount(String query) {
 		Assert.notNull(query, "query is null");
@@ -347,5 +337,26 @@ public class DSSSrvClient implements IDSSClient {
 	@Override
 	public Long getSize() {
 		return dssClient.getSize();
+	}
+
+	@Override
+	public boolean collectionExists(String collectionName) {
+		return dssClient.collectionExists(collectionName);
+	}
+
+	@Override
+	public long count(String query) {
+		return dssClient.count(query);
+	}
+
+	@Override
+	public void dropAllIndex() {
+		dssClient.dropAllIndex();
+
+	}
+
+	@Override
+	public void close() {
+		dssClient.close();
 	}
 }

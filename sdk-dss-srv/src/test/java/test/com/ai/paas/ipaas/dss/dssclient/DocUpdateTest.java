@@ -56,10 +56,10 @@ public class DocUpdateTest extends DSSClient {
 	public void updateOrInsert() {
 		String query = "{'age':23}";
 		String doc = "{'age':25,'url':'xxxxxx'}";
-		assertEquals(2, iDSSClient.updateOrInsert(query, doc));
+		assertEquals(2, iDSSClient.upsert(query, doc));
 		query = "{'age':25}";
 		doc = "{'age':26,'url':'xxxxxx111'}";
-		assertEquals(2, iDSSClient.updateOrInsert(query, doc));
+		assertEquals(2, iDSSClient.upsert(query, doc));
 	}
 
 	/*** null测试 */
@@ -82,7 +82,7 @@ public class DocUpdateTest extends DSSClient {
 	public void updateOrInsertNull() {
 		String query = null;
 		String doc = null;
-		iDSSClient.updateOrInsert(query, doc);
+		iDSSClient.upsert(query, doc);
 	}
 
 	/*** 空测试 */
@@ -105,7 +105,7 @@ public class DocUpdateTest extends DSSClient {
 	public void updateOrInsertBlank() {
 		String query = "";
 		String doc = "";
-		iDSSClient.updateOrInsert(query, doc);
+		iDSSClient.upsert(query, doc);
 	}
 
 }

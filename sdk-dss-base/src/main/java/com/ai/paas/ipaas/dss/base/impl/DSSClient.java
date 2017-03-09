@@ -1,7 +1,13 @@
 package com.ai.paas.ipaas.dss.base.impl;
 
+import static com.mongodb.client.model.Filters.eq;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -10,23 +16,30 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 
 import com.ai.paas.ipaas.dss.base.exception.DSSRuntimeException;
 import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
+import com.ai.paas.ipaas.util.Assert;
+import com.ai.paas.ipaas.util.StringUtil;
 import com.google.gson.Gson;
 import com.mongodb.BasicDBObject;
-import com.mongodb.CommandResult;
-import com.mongodb.DB;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoCredential;
-import com.mongodb.WriteConcern;
-import com.mongodb.gridfs.GridFS;
-import com.mongodb.gridfs.GridFSDBFile;
-import com.mongodb.gridfs.GridFSInputFile;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoIterable;
+import com.mongodb.client.gridfs.GridFSBucket;
+import com.mongodb.client.gridfs.GridFSBuckets;
+import com.mongodb.client.gridfs.GridFSDownloadStream;
+import com.mongodb.client.gridfs.GridFSFindIterable;
+import com.mongodb.client.gridfs.model.GridFSFile;
+import com.mongodb.client.gridfs.model.GridFSUploadOptions;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.UpdateOptions;
 
 public class DSSClient implements IDSSClient {
 
@@ -34,31 +47,24 @@ public class DSSClient implements IDSSClient {
 	private static final String FILE_NAME = "filename";
 
 	private final static String REMARK = "remark";
-	private String bucket = "fs";
 	private MongoClient mongoClient;
-	private DB db;
+	private MongoDatabase db;
 	private String defaultCollection = null;
 	private Gson gson = null;
+	private final int MAX_QUERY_SIZE = 1000;
 
-	public DSSClient(String addr, String database, String userName,
-			String password, String bucket) {
-		 MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
+	public DSSClient(String addr, String database, String userName, String password, String bucket) {
+		MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
 
-	     //build the connection options  
-	    builder.maxConnectionIdleTime(60000);//set the max wait time in (ms)
-	    MongoClientOptions opts = builder.build();
-		MongoCredential credential = MongoCredential.createCredential(userName,
-				database, password.toCharArray());
-		mongoClient = new MongoClient(DSSHelper.Str2SAList(addr),
-				Arrays.asList(credential),opts);
-		mongoClient.setWriteConcern(WriteConcern.JOURNALED);
-		db = mongoClient.getDB(database);
+		// build the connection options
+		builder.maxConnectionIdleTime(60000);// set the max wait time in (ms)
+		MongoClientOptions opts = builder.build();
+		MongoCredential credential = MongoCredential.createCredential(userName, database, password.toCharArray());
+		mongoClient = new MongoClient(DSSHelper.Str2SAList(addr), Arrays.asList(credential), opts);
+		db = mongoClient.getDatabase(database);
 		// 默认表就是服务标识
 		defaultCollection = bucket;
 		gson = new Gson();
-		if (null != bucket && !"".equals(bucket.trim())) {
-			this.bucket = bucket;
-		}
 	}
 
 	/*
@@ -69,21 +75,28 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public String save(File file, String remark) {
+		Assert.notNull(file, "The insert file is null!");
 		String fileType = DSSHelper.getFileType(file.getName());
-		GridFS fs = new GridFS(db, bucket);
-		GridFSInputFile dbFile;
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		ObjectId fileId = null;
+		InputStream inputStream = null;
 		try {
-			dbFile = fs.createFile(file);
-			DBObject dbo = new BasicDBObject();
-			dbo.put(REMARK, remark);
-			dbFile.setMetaData(dbo);
-			dbFile.setContentType(fileType);
-			dbFile.save();
-			return dbFile.getId().toString();
+			inputStream = new FileInputStream(file);
+			GridFSUploadOptions uploadOptions = new GridFSUploadOptions().chunkSizeBytes(1024)
+					.metadata(new Document("type", fileType).append(REMARK, remark).append(FILE_NAME, file.getName()));
+			fileId = gridBucket.uploadFromStream(file.getName(), inputStream, uploadOptions);
+			return fileId.toString();
 		} catch (Exception e) {
-			log.error(e.toString());
-			log.error(e);
+			log.error("", e);
 			throw new DSSRuntimeException(e);
+		} finally {
+			if (null != inputStream) {
+				try {
+					inputStream.close();
+				} catch (IOException e) {
+					log.error("", e);
+				}
+			}
 		}
 	}
 
@@ -95,22 +108,29 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public String save(byte[] bytes, String remark) {
-		if (bytes == null) {
-			log.error("bytes illegal");
+		if (bytes == null || bytes.length <= 0) {
 			throw new DSSRuntimeException(new Exception("bytes illegal"));
 		}
-		GridFS fs = new GridFS(db, bucket);
-		GridFSInputFile dbFile;
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		ObjectId fileId = null;
+		InputStream inputStream = null;
 		try {
-			dbFile = fs.createFile(bytes);
-			DBObject dbo = new BasicDBObject();
-			dbo.put(REMARK, remark);
-			dbFile.setMetaData(dbo);
-			dbFile.save();
-			return dbFile.getId().toString();
+			inputStream = new ByteArrayInputStream(bytes);
+			GridFSUploadOptions uploadOptions = new GridFSUploadOptions().chunkSizeBytes(1024)
+					.metadata(new Document("remark", remark));
+			fileId = gridBucket.uploadFromStream("", inputStream, uploadOptions);
+			return fileId.toString();
 		} catch (Exception e) {
 			log.error(e.toString());
 			throw new DSSRuntimeException(e);
+		} finally {
+			if (null != inputStream) {
+				try {
+					inputStream.close();
+				} catch (IOException e) {
+					log.error("", e);
+				}
+			}
 		}
 	}
 
@@ -125,16 +145,32 @@ public class DSSClient implements IDSSClient {
 			log.error("id illegal");
 			throw new DSSRuntimeException(new Exception("id illegal"));
 		}
-		GridFS fs = new GridFS(db, bucket);
-		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
-		if (dbFile == null) {
-			return null;
-		}
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		GridFSDownloadStream stream = null;
+		ByteArrayOutputStream output = null;
 		try {
-			return DSSHelper.toByteArray(dbFile.getInputStream());
+			stream = gridBucket.openDownloadStream(new ObjectId(id));
+			output = new ByteArrayOutputStream();
+			byte[] buffer = new byte[4096];
+			int n = 0;
+			while (-1 != (n = stream.read(buffer))) {
+				output.write(buffer, 0, n);
+			}
+			return output.toByteArray();
 		} catch (Exception e) {
 			log.error(e.toString());
 			throw new DSSRuntimeException(e);
+		} finally {
+			if (null != output) {
+				try {
+					output.close();
+				} catch (IOException e) {
+					log.error("", e);
+				}
+			}
+			if (null != stream) {
+				stream.close();
+			}
 		}
 	}
 
@@ -149,13 +185,15 @@ public class DSSClient implements IDSSClient {
 			log.error("id illegal");
 			throw new DSSRuntimeException(new Exception("id or bytes illegal"));
 		}
-		GridFS fs = new GridFS(db, bucket);
-		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
-		if (dbFile == null) {
+		try {
+			GridFSBucket gridBucket = GridFSBuckets.create(db);
+			gridBucket.delete(new ObjectId(id));
+			return true;
+		} catch (Exception e) {
+			log.error("delete id: " + id, e);
 			return false;
 		}
-		fs.remove(dbFile);
-		return true;
+
 	}
 
 	/*
@@ -165,26 +203,13 @@ public class DSSClient implements IDSSClient {
 	 * byte[])
 	 */
 	@Override
-	public void update(String id, byte[] bytes) {
+	public String update(String id, byte[] bytes) {
 		if (bytes == null || id == null || "".equals(id)) {
 			log.error("id or bytes illegal");
 			throw new DSSRuntimeException(new Exception("id or bytes illegal"));
 		}
-		GridFS fs = new GridFS(db, bucket);
-		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
-		if (dbFile == null) {
-			log.error("file missing");
-			throw new DSSRuntimeException(new Exception("file missing"));
-		}
-		String fileName = dbFile.getFilename();
-		String fileType = dbFile.getContentType();
-		fs.remove(dbFile);
-		GridFSInputFile file = fs.createFile(bytes);
-		file.setId(new ObjectId(id));
-		file.setContentType(fileType);
-		file.setFilename(fileName);
-		file.put(FILE_NAME, fileName);
-		file.save();
+		delete(id);
+		return save(bytes, "");
 	}
 
 	/*
@@ -200,13 +225,14 @@ public class DSSClient implements IDSSClient {
 			log.error("id is null");
 			throw new DSSRuntimeException(new Exception("id illegal"));
 		}
-		GridFS fs = new GridFS(db, bucket);
-		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
-		if (dbFile == null) {
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		GridFSFindIterable files = gridBucket.find(eq("_id", new ObjectId(id)));
+		if (files == null || null == files.first()) {
 			log.error("file missing");
 			throw new DSSRuntimeException(new Exception("file missing"));
 		}
-		return dbFile.getUploadDate();
+		GridFSFile gridFSFile = files.first();
+		return gridFSFile.getUploadDate();
 	}
 
 	/*
@@ -216,32 +242,13 @@ public class DSSClient implements IDSSClient {
 	 * java.io.File)
 	 */
 	@Override
-	public void update(String id, File file) {
+	public String update(String id, File file) {
 		if (file == null || id == null || "".equals(id)) {
 			log.error("id or file illegal");
 			throw new DSSRuntimeException(new Exception("id or file illegal"));
 		}
-		GridFS fs = new GridFS(db, bucket);
-		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
-		if (dbFile == null) {
-			log.error("file missing");
-			throw new DSSRuntimeException(new Exception("file missing"));
-		}
-		String fileName = dbFile.getFilename();
-		String fileType = dbFile.getContentType();
-		fs.remove(dbFile);
-		GridFSInputFile fsfile = null;
-		try {
-			fsfile = fs.createFile(file);
-		} catch (IOException e) {
-			log.error(e.getMessage());
-			throw new DSSRuntimeException(new Exception(e));
-		}
-		fsfile.setId(new ObjectId(id));
-		fsfile.setContentType(fileType);
-		fsfile.setFilename(fileName);
-		fsfile.put(FILE_NAME, fileName);
-		fsfile.save();
+		delete(id);
+		return save(file, "");
 	}
 
 	/*
@@ -252,12 +259,12 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public long getFileSize(String id) {
-		GridFS fs = new GridFS(db, bucket);
-		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
-		if (dbFile != null) {
-			return dbFile.getLength();
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		GridFSFindIterable files = gridBucket.find(eq("_id", new ObjectId(id)));
+		if (files == null || null == files.first()) {
+			return 0;
 		}
-		return 0;
+		return files.first().getLength();
 	}
 
 	/*
@@ -268,12 +275,12 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public boolean isFileExist(String id) {
-		GridFS fs = new GridFS(db, bucket);
-		GridFSDBFile dbFile = fs.findOne(new ObjectId(id));
-		if (dbFile != null) {
-			return true;
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		GridFSFindIterable files = gridBucket.find(eq("_id", new ObjectId(id)));
+		if (files == null || null == files.first()) {
+			return false;
 		}
-		return false;
+		return true;
 	}
 
 	/*
@@ -283,11 +290,11 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public String insert(String content) {
-		BasicDBObject doc = new BasicDBObject();
+		Document doc = new Document();
 		ObjectId id = new ObjectId();
 		doc.put("_id", id);
 		doc.put("content", content);
-		db.getCollection(defaultCollection).insert(doc);
+		db.getCollection(defaultCollection).insertOne(doc);
 		return id.toString();
 	}
 
@@ -299,10 +306,10 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public String insertJSON(String doc) {
-		BasicDBObject dbObj = gson.fromJson(doc, BasicDBObject.class);
+		Document dbObj = gson.fromJson(doc, Document.class);
 		ObjectId id = new ObjectId();
 		dbObj.put("_id", id);
-		db.getCollection(defaultCollection).insert(dbObj);
+		db.getCollection(defaultCollection).insertOne(dbObj);
 		return id.toString();
 	}
 
@@ -312,14 +319,14 @@ public class DSSClient implements IDSSClient {
 	 * @see com.ai.paas.ipaas.dss.base.impl.IDSSClient#insert(java.util.Map)
 	 */
 	@Override
-	@SuppressWarnings("rawtypes")
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public String insert(Map doc) {
 		if (null == doc || doc.size() <= 0)
 			throw new IllegalArgumentException();
-		DBObject dbObj = new BasicDBObject(doc);
+		Document dbObj = new Document(doc);
 		ObjectId id = new ObjectId();
 		dbObj.put("_id", id);
-		db.getCollection(defaultCollection).insert(dbObj);
+		db.getCollection(defaultCollection).insertOne(dbObj);
 		return id.toString();
 	}
 
@@ -334,12 +341,12 @@ public class DSSClient implements IDSSClient {
 		if (docs == null || docs.isEmpty()) {
 			throw new IllegalArgumentException();
 		}
-		List<DBObject> documents = new ArrayList<DBObject>();
+		List<Document> documents = new ArrayList<Document>();
 		for (int i = 0; i < docs.size(); i++) {
-			DBObject dbObj = new BasicDBObject(docs.get(i));
+			Document dbObj = new Document(docs.get(i));
 			documents.add(dbObj);
 		}
-		db.getCollection(defaultCollection).insert(documents);
+		db.getCollection(defaultCollection).insertMany(documents);
 	}
 
 	/*
@@ -349,9 +356,8 @@ public class DSSClient implements IDSSClient {
 	 * com.ai.paas.ipaas.dss.base.impl.IDSSClient#deleteById(java.lang.String)
 	 */
 	@Override
-	public int deleteById(String id) {
-		BasicDBObject query = new BasicDBObject("_id", new ObjectId(id));
-		return db.getCollection(defaultCollection).remove(query).getN();
+	public long deleteById(String id) {
+		return db.getCollection(defaultCollection).deleteOne(eq("_id", new ObjectId(id))).getDeletedCount();
 	}
 
 	/*
@@ -361,9 +367,14 @@ public class DSSClient implements IDSSClient {
 	 * com.ai.paas.ipaas.dss.base.impl.IDSSClient#deleteByJson(java.lang.String)
 	 */
 	@Override
-	public int deleteByJson(String doc) {
-		BasicDBObject dbObj = gson.fromJson(doc, BasicDBObject.class);
-		return db.getCollection(defaultCollection).remove(dbObj).getN();
+	public long deleteByJson(String doc) {
+		Document dbObj = gson.fromJson(doc, Document.class);
+		if (dbObj.containsKey("_id")) {
+			String id = dbObj.getString("_id");
+			dbObj.remove("_id");
+			dbObj.append("_id", new ObjectId(id));
+		}
+		return db.getCollection(defaultCollection).deleteMany(dbObj).getDeletedCount();
 	}
 
 	/*
@@ -374,11 +385,34 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	@SuppressWarnings("rawtypes")
-	public int deleteByMap(Map doc) {
+	public long deleteByMap(Map doc) {
 		if (null == doc || doc.size() <= 0)
 			throw new IllegalArgumentException();
-		DBObject dbObj = new BasicDBObject(doc);
-		return db.getCollection(defaultCollection).remove(dbObj).getN();
+		@SuppressWarnings("unchecked")
+		Document dbObj = new Document(doc);
+		if (dbObj.containsKey("_id")) {
+			String id = dbObj.getString("_id");
+			dbObj.remove("_id");
+			dbObj.append("_id", new ObjectId(id));
+		}
+		return db.getCollection(defaultCollection).deleteMany(dbObj).getDeletedCount();
+	}
+
+	public boolean collectionExists(final String collectionName) {
+		if (StringUtil.isBlank(collectionName)) {
+			return false;
+		}
+
+		final MongoIterable<String> iterable = db.listCollectionNames();
+		try (final MongoCursor< String>it = iterable.iterator()) {
+			while (it.hasNext()) {
+				if (it.next().equalsIgnoreCase(collectionName)) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/*
@@ -387,10 +421,13 @@ public class DSSClient implements IDSSClient {
 	 * @see com.ai.paas.ipaas.dss.base.impl.IDSSClient#deleteAll()
 	 */
 	@Override
-	public int deleteAll() {
-		// 慎重使用，不可恢复
-		DBObject dbObj = new BasicDBObject();
-		return db.getCollection(defaultCollection).remove(dbObj).getN();
+	public long deleteAll() {
+		if (collectionExists(defaultCollection)) {
+			// 慎重使用，不可恢复
+			Document dbObj = new Document();
+			return db.getCollection(defaultCollection).deleteMany(dbObj).getDeletedCount();
+		}
+		return 0;
 	}
 
 	/*
@@ -400,14 +437,14 @@ public class DSSClient implements IDSSClient {
 	 * com.ai.paas.ipaas.dss.base.impl.IDSSClient#deleteBatch(java.util.List)
 	 */
 	@Override
-	public int deleteBatch(List<Map<String, Object>> docs) {
+	public long deleteBatch(List<Map<String, Object>> docs) {
 		if (docs == null || docs.isEmpty()) {
 			throw new IllegalArgumentException();
 		}
 		int total = 0;
 		for (int i = 0; i < docs.size(); i++) {
-			DBObject dbObj = new BasicDBObject(docs.get(i));
-			total += db.getCollection(defaultCollection).remove(dbObj).getN();
+			Document dbObj = new Document(docs.get(i));
+			total += db.getCollection(defaultCollection).deleteMany(dbObj).getDeletedCount();
 		}
 		return total;
 	}
@@ -420,13 +457,11 @@ public class DSSClient implements IDSSClient {
 	 * java.lang.String)
 	 */
 	@Override
-	public int updateById(String id, String doc) {
-		BasicDBObject query = new BasicDBObject("_id", new ObjectId(id));
-		BasicDBObject dbObj = gson.fromJson(doc, BasicDBObject.class);
-		DBObject modifiedObject = new BasicDBObject();
-		modifiedObject.put("$set", dbObj);
-		return db.getCollection(defaultCollection)
-				.update(query, modifiedObject).getN();
+	public long updateById(String id, String doc) {
+		Document dbObj = gson.fromJson(doc, Document.class);
+		Document modifiedObject = new Document("$set", dbObj);
+		return db.getCollection(defaultCollection).updateOne(eq("_id", new ObjectId(id)), modifiedObject)
+				.getModifiedCount();
 	}
 
 	/*
@@ -436,30 +471,26 @@ public class DSSClient implements IDSSClient {
 	 * java.lang.String)
 	 */
 	@Override
-	public int update(String query, String doc) {
-		BasicDBObject qryObj = gson.fromJson(query, BasicDBObject.class);
-		BasicDBObject dbObj = gson.fromJson(doc, BasicDBObject.class);
-		DBObject modifiedObject = new BasicDBObject();
-		modifiedObject.put("$set", dbObj);
-		return db.getCollection(defaultCollection)
-				.update(qryObj, modifiedObject, false, true).getN();
+	public long update(String query, String doc) {
+		Document qryObj = gson.fromJson(query, Document.class);
+		Document dbObj = gson.fromJson(doc, Document.class);
+		Document modifiedObject = new Document("$set", dbObj);
+		return db.getCollection(defaultCollection).updateMany(qryObj, modifiedObject).getModifiedCount();
 	}
 
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @see
-	 * com.ai.paas.ipaas.dss.base.impl.IDSSClient#updateOrInsert(java.lang.String
-	 * , java.lang.String)
+	 * @see com.ai.paas.ipaas.dss.base.impl.IDSSClient#updateOrInsert(java.lang.
+	 * String , java.lang.String)
 	 */
 	@Override
-	public int updateOrInsert(String query, String doc) {
-		BasicDBObject qryObj = gson.fromJson(query, BasicDBObject.class);
-		BasicDBObject dbObj = gson.fromJson(doc, BasicDBObject.class);
-		DBObject modifiedObject = new BasicDBObject();
-		modifiedObject.put("$set", dbObj);
-		return db.getCollection(defaultCollection)
-				.update(qryObj, modifiedObject, true, true).getN();
+	public long upsert(String query, String doc) {
+		Document qryObj = gson.fromJson(query, Document.class);
+		Document dbObj = gson.fromJson(doc, Document.class);
+		Document modifiedObject = new Document("$set", dbObj);
+		UpdateOptions options = new UpdateOptions().upsert(true);
+		return db.getCollection(defaultCollection).updateMany(qryObj, modifiedObject, options).getModifiedCount();
 	}
 
 	/*
@@ -470,12 +501,11 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public String findById(String id) {
-		DBObject obj = db.getCollection(defaultCollection).findOne(
-				new ObjectId(id));
-		if (null != obj)
-			return gson.toJson(obj);
-		else
+		FindIterable<Document> docs = db.getCollection(defaultCollection).find(eq("_id", new ObjectId(id)));
+		if (docs == null || null == docs.first()) {
 			return null;
+		}
+		return docs.first().toJson();
 	}
 
 	/*
@@ -484,12 +514,13 @@ public class DSSClient implements IDSSClient {
 	 * @see com.ai.paas.ipaas.dss.base.impl.IDSSClient#findOne(java.util.Map)
 	 */
 	@Override
-	@SuppressWarnings("rawtypes")
-	public String findOne(Map doc) {
-		DBObject query = new BasicDBObject(doc);
-		DBObject obj = db.getCollection(defaultCollection).findOne(query);
-		if (null != obj)
-			return gson.toJson(obj);
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public String find(Map doc) {
+		Document query = new Document(doc);
+		List<Document> documents = db.getCollection(defaultCollection).find(query).limit(MAX_QUERY_SIZE)
+				.into(new ArrayList<Document>());
+		if (null != documents)
+			return gson.toJson(documents);
 		else
 			return null;
 	}
@@ -502,19 +533,13 @@ public class DSSClient implements IDSSClient {
 	@Override
 	public String find(String query) {
 		// 慎用，可能很大量
-		BasicDBObject qryObj = gson.fromJson(query, BasicDBObject.class);
-		DBCursor cursor = db.getCollection(defaultCollection).find(qryObj);
-		if (null != cursor) {
-			List<DBObject> result = new ArrayList<>();
-			try {
-				while (cursor.hasNext()) {
-					DBObject obj = cursor.next();
-					result.add(obj);
-				}
-			} finally {
-				cursor.close();
-			}
-			return gson.toJson(result);
+		if (StringUtil.isBlank(query))
+			query = "{}";
+		Document qryObj = gson.fromJson(query, Document.class);
+		List<Document> documents = (List<Document>) db.getCollection(defaultCollection).find(qryObj)
+				.limit(MAX_QUERY_SIZE).into(new ArrayList<Document>());
+		if (null != documents) {
+			return gson.toJson(documents);
 		} else
 			return null;
 	}
@@ -527,21 +552,12 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public String query(String query, int pageNumber, int pageSize) {
-		BasicDBObject qryObj = gson.fromJson(query, BasicDBObject.class);
-		DBCursor cursor = db.getCollection(defaultCollection).find(qryObj)
-				.skip((pageNumber >= 1 ? (pageNumber - 1) * pageSize : 0))
-				.limit(pageSize);
-		if (null != cursor) {
-			List<DBObject> result = new ArrayList<>();
-			try {
-				while (cursor.hasNext()) {
-					DBObject obj = cursor.next();
-					result.add(obj);
-				}
-			} finally {
-				cursor.close();
-			}
-			return gson.toJson(result);
+		Document qryObj = gson.fromJson(query, Document.class);
+		List<Document> documents = db.getCollection(defaultCollection).find(qryObj)
+				.skip((pageNumber >= 1 ? (pageNumber - 1) * pageSize : 0)).limit(pageSize)
+				.into(new ArrayList<Document>());
+		if (null != documents) {
+			return gson.toJson(documents);
 		} else
 			return null;
 	}
@@ -554,7 +570,9 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public long getCount(String query) {
-		BasicDBObject qryObj = gson.fromJson(query, BasicDBObject.class);
+		if (StringUtil.isBlank(query))
+			query = "{}";
+		Document qryObj = gson.fromJson(query, Document.class);
 		return db.getCollection(defaultCollection).count(qryObj);
 	}
 
@@ -567,9 +585,18 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public void addIndex(String field, boolean unique) {
-		String indexName = "idx_" + field;
-		DBObject dbo = new BasicDBObject(indexName, 1);
-		db.getCollection(defaultCollection).createIndex(dbo, indexName, unique);
+		IndexOptions options = new IndexOptions();
+
+		// ensure the index is unique
+		options.unique(true);
+		BasicDBObject dbo = new BasicDBObject(field, 1);
+		String idx = db.getCollection(defaultCollection).createIndex(dbo, options);
+		log.info("Index on field:" + field + "created! name:" + idx);
+	}
+
+	@Override
+	public void dropAllIndex() {
+		db.getCollection(defaultCollection).dropIndexes();
 	}
 
 	/*
@@ -580,20 +607,19 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public void dropIndex(String field) {
-		String indexName = "idx_" + field;
-		db.getCollection(defaultCollection).dropIndex(indexName);
+		BasicDBObject dbo = new BasicDBObject(field, 1);
+		db.getCollection(defaultCollection).dropIndex(dbo);
 	}
 
 	public boolean isIndexExist(String field) {
-		String indexName = "idx_" + field;
-		List<DBObject> indexs = db.getCollection(defaultCollection)
-				.getIndexInfo();
+		String indexName = field;
+		List<Document> indexs = db.getCollection(defaultCollection).listIndexes().into(new ArrayList<Document>());
 		if (null == indexs || indexs.size() <= 0)
 			return false;
 		else {
 			boolean found = false;
-			for (DBObject dbo : indexs) {
-				if (indexName.equals(dbo.get("name"))) {
+			for (Document dbo : indexs) {
+				if (dbo.get("name").toString().indexOf(indexName) >= 0) {
 					found = true;
 					break;
 				}
@@ -605,29 +631,41 @@ public class DSSClient implements IDSSClient {
 	public Long getSize() {
 		long size = -1;
 		// 此处需要取得多个的大小
-		CommandResult tableResult = db.getCollection(defaultCollection)
-				.getStats();
-		CommandResult fileResult = db.getCollection(
-				defaultCollection + ".chunks").getStats();
-		double dataSize = 0;
-		double fileSize = 0;
+		Document tableResult = db.runCommand(new Document("collStats", defaultCollection));
+		Document fileResult = db.runCommand(new Document("collStats", "fs.chunks"));
+		int dataSize = 0;
+		int fileSize = 0;
 		if (null != tableResult) {
 			if (null != tableResult.get("size"))
-				dataSize = tableResult.getDouble("size");
+				dataSize = tableResult.getInteger("size");
 		}
 		if (null != fileResult) {
 			if (null != fileResult.get("size"))
-				fileSize = fileResult.getDouble("size");
+				fileSize = fileResult.getInteger("size");
 		}
 		size = Math.round(dataSize + fileSize);
 		return size;
 	}
 
 	public static void main(String[] args) {
-		IDSSClient dss = new DSSClient("10.1.228.200:37017;10.1.228.202:37017",
-				"admin", "sa", "sa", "fs");
+		IDSSClient dss = new DSSClient("10.1.228.200:37017;10.1.228.202:37017", "admin", "sa", "sa", "fs");
 		byte[] byte0 = "123456789".getBytes();
 		String str1 = "thenormaltest";
 		dss.save(byte0, str1);
 	}
+
+	@Override
+	public void close() {
+		if (null != mongoClient)
+			mongoClient.close();
+	}
+
+	@Override
+	public long count(String query) {
+		if (StringUtil.isBlank(query))
+			query = "{}";
+		Document qryObj = gson.fromJson(query, Document.class);
+		return db.getCollection(defaultCollection).count(qryObj);
+	}
+
 }

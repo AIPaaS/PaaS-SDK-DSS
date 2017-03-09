@@ -42,7 +42,7 @@ publishing {
 						delegate.dependency {
 							delegate.groupId("org.mongodb")
 							delegate.artifactId("mongodb-driver")
-							delegate.version("3.0.2")
+							delegate.version("3.3.0")
 						}
 					}
 				}
@@ -70,7 +70,7 @@ publishing {
 						delegate.dependency {
 							delegate.groupId("org.mongodb")
 							delegate.artifactId("mongodb-driver")
-							delegate.version("3.0.2")
+							delegate.version("3.3.0")
 						}
 					}
 				}

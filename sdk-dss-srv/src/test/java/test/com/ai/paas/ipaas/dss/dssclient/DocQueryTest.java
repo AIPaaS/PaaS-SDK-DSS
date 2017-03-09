@@ -57,7 +57,7 @@ public class DocQueryTest extends DSSClient {
 		Map<String, Double> query = new HashMap<>();
 		query.put("age", 23.0);
 		Gson gson = new Gson();
-		String json = iDSSClient.findOne(query);
+		String json = iDSSClient.find(query);
 		assertEquals("test is test!",
 				gson.fromJson(json, Map.class).get("title"));
 	}
@@ -81,6 +81,7 @@ public class DocQueryTest extends DSSClient {
 	}
 
 	/*** 正常情况测试 */
+	@SuppressWarnings("deprecation")
 	@Test
 	public void getCount() {
 		String query = "{'age':23}";
@@ -97,7 +98,7 @@ public class DocQueryTest extends DSSClient {
 	@Test(expected = Exception.class)
 	public void findOneBlank() {
 		Map<String, Double> query = new HashMap<>();
-		iDSSClient.findOne(query);
+		iDSSClient.find(query);
 	}
 
 	/*** 空测试 */
@@ -113,6 +114,7 @@ public class DocQueryTest extends DSSClient {
 	}
 
 	/*** 空测试 */
+	@SuppressWarnings("deprecation")
 	@Test(expected = Exception.class)
 	public void getCountBlank() {
 		String query = "";
@@ -125,17 +127,6 @@ public class DocQueryTest extends DSSClient {
 		iDSSClient.findById(null);
 	}
 
-	/*** null测试 */
-	@Test(expected = Exception.class)
-	public void findOneNull() {
-		iDSSClient.findOne(null);
-	}
-
-	/*** null测试 */
-	@Test(expected = Exception.class)
-	public void findNull() {
-		iDSSClient.find(null);
-	}
 
 	/*** null测试 */
 	@Test(expected = Exception.class)
@@ -144,6 +135,7 @@ public class DocQueryTest extends DSSClient {
 	}
 
 	/*** null测试 */
+	@SuppressWarnings("deprecation")
 	@Test(expected = Exception.class)
 	public void getCountNull() {
 		iDSSClient.getCount(null);
