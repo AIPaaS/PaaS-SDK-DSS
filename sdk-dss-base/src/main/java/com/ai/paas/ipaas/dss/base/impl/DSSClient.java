@@ -24,6 +24,10 @@ import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
 import com.ai.paas.ipaas.util.Assert;
 import com.ai.paas.ipaas.util.StringUtil;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -50,8 +54,8 @@ public class DSSClient implements IDSSClient {
 	private MongoClient mongoClient;
 	private MongoDatabase db;
 	private String defaultCollection = null;
-	private Gson gson = null;
 	private final int MAX_QUERY_SIZE = 1000;
+	Gson gson = new GsonBuilder().registerTypeAdapter(ObjectId.class, new ObjectIdTypeAdapter()).create();
 
 	public DSSClient(String addr, String database, String userName, String password, String bucket) {
 		MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
@@ -64,7 +68,6 @@ public class DSSClient implements IDSSClient {
 		db = mongoClient.getDatabase(database);
 		// 默认表就是服务标识
 		defaultCollection = bucket;
-		gson = new Gson();
 	}
 
 	/*
@@ -306,7 +309,7 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public String insertJSON(String doc) {
-		Document dbObj = gson.fromJson(doc, Document.class);
+		Document dbObj = Document.parse(doc);
 		ObjectId id = new ObjectId();
 		dbObj.put("_id", id);
 		db.getCollection(defaultCollection).insertOne(dbObj);
@@ -368,7 +371,7 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public long deleteByJson(String doc) {
-		Document dbObj = gson.fromJson(doc, Document.class);
+		Document dbObj = Document.parse(doc);
 		if (dbObj.containsKey("_id")) {
 			String id = dbObj.getString("_id");
 			dbObj.remove("_id");
@@ -458,7 +461,7 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public long updateById(String id, String doc) {
-		Document dbObj = gson.fromJson(doc, Document.class);
+		Document dbObj = Document.parse(doc);
 		Document modifiedObject = new Document("$set", dbObj);
 		return db.getCollection(defaultCollection).updateOne(eq("_id", new ObjectId(id)), modifiedObject)
 				.getModifiedCount();
@@ -472,8 +475,8 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public long update(String query, String doc) {
-		Document qryObj = gson.fromJson(query, Document.class);
-		Document dbObj = gson.fromJson(doc, Document.class);
+		Document qryObj = Document.parse(query);
+		Document dbObj = Document.parse(doc);
 		Document modifiedObject = new Document("$set", dbObj);
 		return db.getCollection(defaultCollection).updateMany(qryObj, modifiedObject).getModifiedCount();
 	}
@@ -486,8 +489,8 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public long upsert(String query, String doc) {
-		Document qryObj = gson.fromJson(query, Document.class);
-		Document dbObj = gson.fromJson(doc, Document.class);
+		Document qryObj = Document.parse(query);
+		Document dbObj = Document.parse(doc);
 		Document modifiedObject = new Document("$set", dbObj);
 		UpdateOptions options = new UpdateOptions().upsert(true);
 		return db.getCollection(defaultCollection).updateMany(qryObj, modifiedObject, options).getModifiedCount();
@@ -505,7 +508,7 @@ public class DSSClient implements IDSSClient {
 		if (docs == null || null == docs.first()) {
 			return null;
 		}
-		return docs.first().toJson();
+		return gson.toJson(docs.first());
 	}
 
 	/*
@@ -535,7 +538,7 @@ public class DSSClient implements IDSSClient {
 		// 慎用，可能很大量
 		if (StringUtil.isBlank(query))
 			query = "{}";
-		Document qryObj = gson.fromJson(query, Document.class);
+		Document qryObj = Document.parse(query);
 		List<Document> documents = (List<Document>) db.getCollection(defaultCollection).find(qryObj)
 				.limit(MAX_QUERY_SIZE).into(new ArrayList<Document>());
 		if (null != documents) {
@@ -552,7 +555,7 @@ public class DSSClient implements IDSSClient {
 	 */
 	@Override
 	public String query(String query, int pageNumber, int pageSize) {
-		Document qryObj = gson.fromJson(query, Document.class);
+		Document qryObj = Document.parse(query);
 		List<Document> documents = db.getCollection(defaultCollection).find(qryObj)
 				.skip((pageNumber >= 1 ? (pageNumber - 1) * pageSize : 0)).limit(pageSize)
 				.into(new ArrayList<Document>());
@@ -572,7 +575,7 @@ public class DSSClient implements IDSSClient {
 	public long getCount(String query) {
 		if (StringUtil.isBlank(query))
 			query = "{}";
-		Document qryObj = gson.fromJson(query, Document.class);
+		Document qryObj = Document.parse(query);
 		return db.getCollection(defaultCollection).count(qryObj);
 	}
 
@@ -664,8 +667,24 @@ public class DSSClient implements IDSSClient {
 	public long count(String query) {
 		if (StringUtil.isBlank(query))
 			query = "{}";
-		Document qryObj = gson.fromJson(query, Document.class);
+		Document qryObj = Document.parse(query);
 		return db.getCollection(defaultCollection).count(qryObj);
 	}
 
+
+	private class ObjectIdTypeAdapter extends TypeAdapter<ObjectId> {
+		@Override
+		public void write(final JsonWriter out, final ObjectId value) throws IOException {
+			out.beginObject().name("$oid").value(value.toString()).endObject();
+		}
+
+		@Override
+		public ObjectId read(final JsonReader in) throws IOException {
+			in.beginObject();
+			assert "$oid".equals(in.nextName());
+			String objectId = in.nextString();
+			in.endObject();
+			return new ObjectId(objectId);
+		}
+	}
 }

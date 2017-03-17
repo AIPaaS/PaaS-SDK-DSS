@@ -206,11 +206,11 @@ public class DSSClientTest {
 	public void testInsertJSON() {
 		JsonObject json = new JsonObject();
 		json.addProperty("name", "cmc-asc");
-		json.addProperty("age", 21);
+		json.addProperty("age", 1489716180934L);
 		json.addProperty("sex", "Male");
 		String id = dssClient.insertJSON(gson.toJson(json));
 		String doc = dssClient.findById(id);
-		System.out.println(doc);
+		System.out.println("--"+doc);
 		json = gson.fromJson(doc, JsonObject.class);
 		assertEquals("cmc-asc", json.get("name").getAsString());
 	}
