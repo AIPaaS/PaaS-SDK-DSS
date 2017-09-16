@@ -3,7 +3,7 @@ dependencies{
 
 
 	compile 'com.ai:ipaas-common:0.3'
-	compile 'org.mongodb:mongodb-driver:3.3.0'
+	compile 'org.mongodb:mongodb-driver:3.5.0'
 	compile 'org.apache.logging.log4j:log4j-api:2.2'
 }
 
