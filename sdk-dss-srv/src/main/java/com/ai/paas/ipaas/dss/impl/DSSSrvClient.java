@@ -359,4 +359,38 @@ public class DSSSrvClient implements IDSSClient {
 	public void close() {
 		dssClient.close();
 	}
+
+	@Override
+	public byte[] readByName(String fileName) {
+		if (fileName == null || "".equals(fileName)) {
+			log.error("fileName illegal");
+			throw new DSSRuntimeException(new Exception("fileName illegal"));
+		}
+		try {
+			return dssClient.readByName(fileName);
+		} catch (Exception e) {
+			log.error("", e);
+			throw new DSSRuntimeException(e);
+		}
+	}
+
+	@Override
+	public boolean withinPolygon(String field, String mongoId, double[] point) {
+		return dssClient.withinPolygon(field, mongoId, point);
+	}
+
+	@Override
+	public boolean withinPolygon(String field, List<double[]> coordinates, double[] point) {
+		return dssClient.withinPolygon(field, coordinates, point);
+	}
+
+	@Override
+	public String findGeoWithinPolygon(String field, List<double[]> coordinates) {
+		return dssClient.findGeoWithinPolygon(field, coordinates);
+	}
+
+	@Override
+	public void createGeoIndex(String field) {
+		dssClient.createGeoIndex(field);
+	}
 }

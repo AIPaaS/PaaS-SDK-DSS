@@ -43,7 +43,11 @@ import com.mongodb.client.gridfs.GridFSFindIterable;
 import com.mongodb.client.gridfs.model.GridFSFile;
 import com.mongodb.client.gridfs.model.GridFSUploadOptions;
 import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.geojson.Polygon;
+import com.mongodb.client.model.geojson.PolygonCoordinates;
+import com.mongodb.client.model.geojson.Position;
 
 public class DSSClient implements IDSSClient {
 
@@ -153,6 +157,40 @@ public class DSSClient implements IDSSClient {
 		ByteArrayOutputStream output = null;
 		try {
 			stream = gridBucket.openDownloadStream(new ObjectId(id));
+			output = new ByteArrayOutputStream();
+			byte[] buffer = new byte[4096];
+			int n = 0;
+			while (-1 != (n = stream.read(buffer))) {
+				output.write(buffer, 0, n);
+			}
+			return output.toByteArray();
+		} catch (Exception e) {
+			log.error(e.toString());
+			throw new DSSRuntimeException(e);
+		} finally {
+			if (null != output) {
+				try {
+					output.close();
+				} catch (IOException e) {
+					log.error("", e);
+				}
+			}
+			if (null != stream) {
+				stream.close();
+			}
+		}
+	}
+
+	public byte[] readByName(String fileName) {
+		if (fileName == null || "".equals(fileName)) {
+			log.error("fileName illegal");
+			throw new DSSRuntimeException(new Exception("fileName illegal"));
+		}
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		GridFSDownloadStream stream = null;
+		ByteArrayOutputStream output = null;
+		try {
+			stream = gridBucket.openDownloadStream(fileName);
 			output = new ByteArrayOutputStream();
 			byte[] buffer = new byte[4096];
 			int n = 0;
@@ -407,7 +445,7 @@ public class DSSClient implements IDSSClient {
 		}
 
 		final MongoIterable<String> iterable = db.listCollectionNames();
-		try (final MongoCursor< String>it = iterable.iterator()) {
+		try (final MongoCursor<String> it = iterable.iterator()) {
 			while (it.hasNext()) {
 				if (it.next().equalsIgnoreCase(collectionName)) {
 					return true;
@@ -651,10 +689,23 @@ public class DSSClient implements IDSSClient {
 	}
 
 	public static void main(String[] args) {
-		IDSSClient dss = new DSSClient("10.1.228.200:37017;10.1.228.202:37017", "admin", "sa", "sa", "fs");
-		byte[] byte0 = "123456789".getBytes();
-		String str1 = "thenormaltest";
-		dss.save(byte0, str1);
+		IDSSClient dss = new DSSClient("10.1.234.150:37017", "dss001", "dss001user", "dss001pwd", "gisfs");
+		// dss.createGeoIndex("geom");
+		// System.out
+		// .println(dss.withinPolygon("geom", "5ab1ffb696ca0318249ef4d8", new
+		// double[] { 117.215762, 39.134247 }));
+		// final BasicDBObject geo = new BasicDBObject("geom", new Point((new
+		// Position(1.5d,0.5d))));
+		// String polygonId = dss.insertJSON(geo.toJson());
+		List<double[]> values = new ArrayList<>();
+		values.add(new double[] { 1.0, 1.0 });
+		values.add(new double[] { 2.0, 1.0 });
+		values.add(new double[] { 2.0, 0.0 });
+		values.add(new double[] { 1.0, 0.0 });
+		values.add(new double[] { 1.0, 1.0 });
+		// System.out.println(dss.withinPolygon("geom", values, new double[] {
+		// 1.5, 0.5 }));
+		System.out.println(dss.findGeoWithinPolygon("geom", values));
 	}
 
 	@Override
@@ -671,7 +722,6 @@ public class DSSClient implements IDSSClient {
 		return db.getCollection(defaultCollection).count(qryObj);
 	}
 
-
 	private class ObjectIdTypeAdapter extends TypeAdapter<ObjectId> {
 		@Override
 		public void write(final JsonWriter out, final ObjectId value) throws IOException {
@@ -686,5 +736,85 @@ public class DSSClient implements IDSSClient {
 			in.endObject();
 			return new ObjectId(objectId);
 		}
+	}
+
+	@Override
+	public boolean withinPolygon(final String field, final String mongoId, final double[] point) {
+		// db.geom.find({polygons:
+		// {$geoIntersects:
+		// {$geometry:{ "type" : "Point",
+		// "coordinates" : [ 17.3734, 78.4738 ] }
+		// }
+		// }
+		// });
+		Assert.notNull(field, "the geo field can not be null!");
+		Assert.notNull(mongoId, "the geo record primary id can not be null!");
+		Assert.notNull(point, "the point can not be null!");
+		final BasicDBObject pLocation = new BasicDBObject("type", "Point");
+		pLocation.put("coordinates", point);
+		final BasicDBObject geometry = new BasicDBObject("$geometry", pLocation);
+		final BasicDBObject filter = new BasicDBObject("$geoIntersects", geometry);
+		final BasicDBObject query = new BasicDBObject(field, filter);
+		log.info("the geo withinPolygon query:" + query);
+		List<Document> documents = db.getCollection(defaultCollection).find(query).into(new ArrayList<Document>());
+		log.info("the geo withinPolygon query result:" + documents);
+		if (null == documents)
+			// 不在任何区域内
+			return false;
+
+		boolean found = false;
+		for (Document document : documents) {
+			Object id = document.get("_id");
+			if (null != id && id.toString().equalsIgnoreCase(mongoId)) {
+				found = true;
+				break;
+			}
+		}
+		// 可能在别的区域内
+		return found;
+	}
+
+	@Override
+	public boolean withinPolygon(final String field, final List<double[]> coordinates, final double[] point) {
+		Assert.notNull(field, "the geo field can not be null!");
+		Assert.notNull(coordinates, "the geo record json can not be null!");
+		Assert.notNull(point, "the point can not be null!");
+		// 准备数据
+		List<Position> values = new ArrayList<>();
+		for (double[] coordinate : coordinates) {
+			values.add(new Position(coordinate[0], coordinate[1]));
+		}
+		@SuppressWarnings("unchecked")
+		PolygonCoordinates polygonCoordinates = new PolygonCoordinates(values);
+		Polygon polygon = new Polygon(polygonCoordinates);
+		final BasicDBObject geo = new BasicDBObject(field, polygon);
+		String polygonId = insertJSON(geo.toJson());
+		boolean found = withinPolygon(field, polygonId, point);
+		deleteById(polygonId);
+		return found;
+	}
+
+	@Override
+	public String findGeoWithinPolygon(String field, List<double[]> coordinates) {
+		Assert.notNull(field, "the geo field can not be null!");
+		Assert.notNull(coordinates, "the geo record json can not be null!");
+		// 准备数据
+		List<List<double[]>> values = new ArrayList<>();
+		values.add(coordinates);
+		BasicDBObject polygon = new BasicDBObject("type", "Polygon");
+		polygon.put("coordinates", values);
+		final BasicDBObject query = new BasicDBObject(field,
+				new BasicDBObject("$geoWithin", new BasicDBObject("$geometry", polygon)));
+		log.info("the geo within query:" + query);
+		List<Document> documents = db.getCollection(defaultCollection).find(query).into(new ArrayList<Document>());
+		log.info("the geo within query result:" + documents);
+		if (null == documents)
+			return null;
+		return gson.toJson(documents);
+	}
+
+	@Override
+	public void createGeoIndex(String field) {
+		db.getCollection(defaultCollection).createIndex(Indexes.geo2dsphere(field));
 	}
 }

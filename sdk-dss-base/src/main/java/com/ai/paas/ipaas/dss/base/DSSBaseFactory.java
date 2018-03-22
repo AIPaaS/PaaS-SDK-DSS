@@ -49,12 +49,12 @@ public class DSSBaseFactory {
 		String bucket = null;
 		if (null != in.get("bucket")) {
 			bucket = in.get("bucket").getAsString();
-
 		}
 		Assert.notNull(mongoServer, "mongoServer is null");
 		Assert.notNull(database, "database is null");
 		Assert.notNull(userName, "userName is null");
 		Assert.notNull(password, "password is null");
+		Assert.notNull(password, "bucket(table) is null, pls. set!");
 		mongoServer = mongoServer.trim();
 		database = database.trim();
 		userName = userName.trim();
