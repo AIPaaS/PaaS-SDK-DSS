@@ -3,11 +3,12 @@ package com.ai.paas.ipaas.dss.base.impl;
 import static com.mongodb.client.model.Filters.eq;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -74,14 +75,13 @@ public class DSSClient implements IDSSClient {
 		defaultCollection = bucket;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.ai.paas.ipaas.dss.base.impl.IDSSClient#save(java.io.File,
-	 * java.lang.String)
-	 */
 	@Override
 	public String save(File file, String remark) {
+		return save(file, remark, 358400);
+	}
+
+	@Override
+	public String save(File file, String remark, int chunkSize) {
 		Assert.notNull(file, "The insert file is null!");
 		String fileType = DSSHelper.getFileType(file.getName());
 		GridFSBucket gridBucket = GridFSBuckets.create(db);
@@ -89,7 +89,7 @@ public class DSSClient implements IDSSClient {
 		InputStream inputStream = null;
 		try {
 			inputStream = new FileInputStream(file);
-			GridFSUploadOptions uploadOptions = new GridFSUploadOptions().chunkSizeBytes(1024)
+			GridFSUploadOptions uploadOptions = new GridFSUploadOptions().chunkSizeBytes(chunkSize)
 					.metadata(new Document("type", fileType).append(REMARK, remark).append(FILE_NAME, file.getName()));
 			fileId = gridBucket.uploadFromStream(file.getName(), inputStream, uploadOptions);
 			return fileId.toString();
@@ -107,14 +107,13 @@ public class DSSClient implements IDSSClient {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.ai.paas.ipaas.dss.base.impl.IDSSClient#save(byte[],
-	 * java.lang.String)
-	 */
 	@Override
 	public String save(byte[] bytes, String remark) {
+		return save(bytes, remark, 358400);
+	}
+
+	@Override
+	public String save(byte[] bytes, String remark, int chunkSize) {
 		if (bytes == null || bytes.length <= 0) {
 			throw new DSSRuntimeException(new Exception("bytes illegal"));
 		}
@@ -123,7 +122,7 @@ public class DSSClient implements IDSSClient {
 		InputStream inputStream = null;
 		try {
 			inputStream = new ByteArrayInputStream(bytes);
-			GridFSUploadOptions uploadOptions = new GridFSUploadOptions().chunkSizeBytes(1024)
+			GridFSUploadOptions uploadOptions = new GridFSUploadOptions().chunkSizeBytes(chunkSize)
 					.metadata(new Document("remark", remark));
 			fileId = gridBucket.uploadFromStream("", inputStream, uploadOptions);
 			return fileId.toString();
@@ -154,30 +153,66 @@ public class DSSClient implements IDSSClient {
 		}
 		GridFSBucket gridBucket = GridFSBuckets.create(db);
 		GridFSDownloadStream stream = null;
-		ByteArrayOutputStream output = null;
 		try {
 			stream = gridBucket.openDownloadStream(new ObjectId(id));
-			output = new ByteArrayOutputStream();
-			byte[] buffer = new byte[4096];
-			int n = 0;
-			while (-1 != (n = stream.read(buffer))) {
-				output.write(buffer, 0, n);
-			}
-			return output.toByteArray();
+			int fileLength = (int) stream.getGridFSFile().getLength();
+			byte[] buffer = new byte[fileLength];
+			stream.read(buffer);
+			return buffer;
 		} catch (Exception e) {
 			log.error(e.toString());
 			throw new DSSRuntimeException(e);
 		} finally {
-			if (null != output) {
+			if (null != stream) {
+				stream.close();
+			}
+		}
+	}
+
+	@Override
+	public void readToFile(String id, String fileName) {
+		if (id == null || "".equals(id)) {
+			log.error("id illegal");
+			throw new DSSRuntimeException(new Exception("id illegal"));
+		}
+		if (fileName == null || "".equals(fileName)) {
+			log.error("fileName illegal");
+			throw new DSSRuntimeException(new Exception("fileName illegal"));
+		}
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		FileOutputStream streamToDownloadTo = null;
+		try {
+			streamToDownloadTo = new FileOutputStream(fileName);
+			gridBucket.downloadToStream(new ObjectId(id), streamToDownloadTo);
+		} catch (Exception e) {
+			log.error(e.toString());
+			throw new DSSRuntimeException(e);
+		} finally {
+			if (null != streamToDownloadTo) {
 				try {
-					output.close();
+					streamToDownloadTo.close();
 				} catch (IOException e) {
 					log.error("", e);
 				}
 			}
-			if (null != stream) {
-				stream.close();
-			}
+		}
+	}
+
+	public void readToFile(String id, OutputStream out) {
+		if (id == null || "".equals(id)) {
+			log.error("id illegal");
+			throw new DSSRuntimeException(new Exception("id illegal"));
+		}
+		if (out == null) {
+			log.error("out illegal");
+			throw new DSSRuntimeException(new Exception("out illegal"));
+		}
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		try {
+			gridBucket.downloadToStream(new ObjectId(id), out);
+		} catch (Exception e) {
+			log.error(e.toString());
+			throw new DSSRuntimeException(e);
 		}
 	}
 
@@ -188,27 +223,16 @@ public class DSSClient implements IDSSClient {
 		}
 		GridFSBucket gridBucket = GridFSBuckets.create(db);
 		GridFSDownloadStream stream = null;
-		ByteArrayOutputStream output = null;
 		try {
 			stream = gridBucket.openDownloadStream(fileName);
-			output = new ByteArrayOutputStream();
-			byte[] buffer = new byte[4096];
-			int n = 0;
-			while (-1 != (n = stream.read(buffer))) {
-				output.write(buffer, 0, n);
-			}
-			return output.toByteArray();
+			int fileLength = (int) stream.getGridFSFile().getLength();
+			byte[] buffer = new byte[fileLength];
+			stream.read(buffer);
+			return buffer;
 		} catch (Exception e) {
 			log.error(e.toString());
 			throw new DSSRuntimeException(e);
 		} finally {
-			if (null != output) {
-				try {
-					output.close();
-				} catch (IOException e) {
-					log.error("", e);
-				}
-			}
 			if (null != stream) {
 				stream.close();
 			}

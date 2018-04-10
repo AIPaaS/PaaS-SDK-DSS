@@ -1,6 +1,7 @@
 package com.ai.paas.ipaas.dss.impl;
 
 import java.io.File;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
@@ -52,6 +53,36 @@ public class DSSSrvClient implements IDSSClient {
 			System.out.println(jc.get(redisKey));
 			jc.set(redisKey, size + "");
 			System.out.println(jc.get(redisKey));
+		}
+	}
+
+	@Override
+	public String save(File file, String remark, int chunkSize) {
+		judgeSize(file);
+		try {
+			String fileId = dssClient.save(file, remark, chunkSize);
+			jc.incrBy(redisKey, Integer.parseInt(DSSSrvHelper.getFileSize(file) + ""));
+			return fileId;
+		} catch (Exception e) {
+			log.error("", e);
+			throw new DSSRuntimeException(e);
+		}
+	}
+
+	@Override
+	public String save(byte[] bytes, String remark, int chunkSize) {
+		if (bytes == null) {
+			log.error("bytes illegal");
+			throw new DSSRuntimeException(new Exception("bytes illegal"));
+		}
+		judgeSize(bytes);
+		try {
+			String fileId = dssClient.save(bytes, remark, chunkSize);
+			jc.incrBy(redisKey, Integer.parseInt(DSSSrvHelper.getFileSize(bytes) + ""));
+			return fileId;
+		} catch (Exception e) {
+			log.error("", e);
+			throw new DSSRuntimeException(e);
 		}
 	}
 
@@ -392,5 +423,16 @@ public class DSSSrvClient implements IDSSClient {
 	@Override
 	public void createGeoIndex(String field) {
 		dssClient.createGeoIndex(field);
+	}
+
+	@Override
+	public void readToFile(String id, String fileName) {
+		dssClient.readToFile(id, fileName);
+
+	}
+
+	@Override
+	public void readToFile(String id, OutputStream out) {
+		dssClient.readToFile(id, out);
 	}
 }

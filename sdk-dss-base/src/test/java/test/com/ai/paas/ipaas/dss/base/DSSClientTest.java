@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -36,7 +37,7 @@ public class DSSClientTest {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		dssClient = DSSBaseFactory.getClient(
-				"{\"mongoServer\":\"10.1.235.23:27017;10.1.235.23:27017;10.1.235.24:27017\",\"database\":\"dss002\",\"userName\":\"dss002user\",\"password\":\"dss002pwd\",\"bucket\":\"dss002\"}");
+				"{\"mongoServer\":\"10.19.10.84:37017\",\"database\":\"dsswo\",\"userName\":\"dsswouser\",\"password\":\"dsswopwd\",\"bucket\":\"dsswofs\"}");
 
 	}
 
@@ -54,7 +55,28 @@ public class DSSClientTest {
 	@After
 	public void tearDown() throws Exception {
 		dssClient.dropAllIndex();
+	}
 
+	@Test
+	public void testSaveFile() {
+		Long startTime = System.currentTimeMillis();
+		System.out.println("开始时间戳：" + startTime + "毫秒");
+		File file = new File("/Users/douxiaofeng/Downloads/a.rar");
+		String fileid = dssClient.save(file, "remark");
+		Long endTime = System.currentTimeMillis();
+		Long costTime = endTime - startTime;
+		System.out.println("文件上传成功，fileid=" + fileid + ", 结束时间戳：" + endTime + "， 用时" + costTime + "毫秒");
+	}
+
+	@Test
+	public void testSaveFileByChunk() {
+		Long startTime = System.currentTimeMillis();
+		System.out.println("开始时间戳：" + startTime + "毫秒");
+		File file = new File("/Users/douxiaofeng/Downloads/a.rar");
+		String fileid = dssClient.save(file, "remark", 8192 * 16);
+		Long endTime = System.currentTimeMillis();
+		Long costTime = endTime - startTime;
+		System.out.println("文件上传成功，fileid=" + fileid + ", 结束时间戳：" + endTime + "， 用时" + costTime + "毫秒");
 	}
 
 	@Test
@@ -103,6 +125,41 @@ public class DSSClientTest {
 		String id = dssClient.save(cnt.getBytes(), "test");
 		byte[] bytes = dssClient.read(id);
 		assertEquals(cnt, new String(bytes));
+	}
+
+	@Test
+	public void testReadById() {
+		Long startTime = System.currentTimeMillis();
+		String id = "5acb543b263c149b9274bc1b";
+		// 开始插入
+		byte[] bytes = dssClient.read(id);
+		Long endTime = System.currentTimeMillis();
+		Long costTime = endTime - startTime;
+		System.out.println("文件成功， 结束时间戳：" + endTime + "， 用时" + costTime + "毫秒");
+	}
+
+	@Test
+	public void testReadByIdToFile() {
+		Long startTime = System.currentTimeMillis();
+		String id = "5acb543b263c149b9274bc1b";
+		// 开始插入
+		dssClient.readToFile(id, "/Users/douxiaofeng/Downloads/b.rar");
+		Long endTime = System.currentTimeMillis();
+		Long costTime = endTime - startTime;
+		System.out.println("文件成功， 结束时间戳：" + endTime + "， 用时" + costTime + "毫秒");
+	}
+
+	@Test
+	public void testReadByIdToOut() throws Exception {
+		Long startTime = System.currentTimeMillis();
+		String id = "5acb543b263c149b9274bc1b";
+		// 开始插入
+		OutputStream out = new FileOutputStream(new File("/Users/douxiaofeng/Downloads/b.rar"));
+		dssClient.readToFile(id, out);
+		out.close();
+		Long endTime = System.currentTimeMillis();
+		Long costTime = endTime - startTime;
+		System.out.println("文件成功， 结束时间戳：" + endTime + "， 用时" + costTime + "毫秒");
 	}
 
 	@Test
@@ -210,7 +267,7 @@ public class DSSClientTest {
 		json.addProperty("sex", "Male");
 		String id = dssClient.insertJSON(gson.toJson(json));
 		String doc = dssClient.findById(id);
-		System.out.println("--"+doc);
+		System.out.println("--" + doc);
 		json = gson.fromJson(doc, JsonObject.class);
 		assertEquals("cmc-asc", json.get("name").getAsString());
 	}

@@ -1,6 +1,7 @@
 package com.ai.paas.ipaas.dss.base.interfaces;
 
 import java.io.File;
+import java.io.OutputStream;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -21,12 +22,36 @@ public interface IDSSClient {
 	 * 存储文件
 	 * 
 	 * @param file
-	 *            待存入文件内容
+	 * @param remark
+	 * @param chunkSize
+	 *            上传的块大小，建议至少16倍的8192
+	 * @return
+	 */
+	public String save(File file, String remark, int chunkSize);
+
+	/**
+	 * 存储文件
+	 * 
+	 * @param file
+	 *            待存入文件内容字节
 	 * @param remark
 	 *            文件描述
 	 * @return 文件存储的位置对应的id，用于取出文件
 	 */
 	public String save(byte[] bytes, String remark);
+
+	/**
+	 * 存储文件
+	 * 
+	 * @param bytes
+	 *            待存入文件内容字节
+	 * @param remark
+	 *            文件描述
+	 * @param chunkSize
+	 *            上传的块大小，建议至少16倍的8192
+	 * @return
+	 */
+	public String save(byte[] bytes, String remark, int chunkSize);
 
 	/**
 	 * 读取指定文件
@@ -36,6 +61,21 @@ public interface IDSSClient {
 	 * @return 文件内容
 	 */
 	public byte[] read(String id);
+	
+	
+	/**
+	 * 将文件直接写到指定的文件
+	 * @param id
+	 * @param fileName 文件全路径名
+	 */
+	public void readToFile(String id,String fileName);
+	
+	/**
+	 * 将文件内容读出到输出流，不负责关闭输出流
+	 * @param id 待读取文件的id
+	 * @param out 输出流
+	 */
+	public void readToFile(String id,OutputStream out);
 
 	/**
 	 * 根据文件名称读取文件，文件名要唯一
