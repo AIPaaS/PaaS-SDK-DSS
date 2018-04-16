@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -61,7 +60,7 @@ public class DSSClientTest {
 	public void testSaveFile() {
 		Long startTime = System.currentTimeMillis();
 		System.out.println("开始时间戳：" + startTime + "毫秒");
-		File file = new File("/Users/douxiaofeng/Downloads/a.rar");
+		File file = new File("/Users/douxiaofeng/Downloads/IMG_0712.jpg");
 		String fileid = dssClient.save(file, "remark");
 		Long endTime = System.currentTimeMillis();
 		Long costTime = endTime - startTime;
@@ -128,11 +127,15 @@ public class DSSClientTest {
 	}
 
 	@Test
-	public void testReadById() {
+	public void testReadById() throws Exception {
 		Long startTime = System.currentTimeMillis();
-		String id = "5acb543b263c149b9274bc1b";
+		String id = "5acd8f70263c14b40bd11a5f";
 		// 开始插入
 		byte[] bytes = dssClient.read(id);
+		File file = new File("/Users/douxiaofeng/Downloads/c.jpg");
+		OutputStream out = new FileOutputStream(file);
+		out.write(bytes, 0, bytes.length);
+		out.close();
 		Long endTime = System.currentTimeMillis();
 		Long costTime = endTime - startTime;
 		System.out.println("文件成功， 结束时间戳：" + endTime + "， 用时" + costTime + "毫秒");
@@ -141,9 +144,9 @@ public class DSSClientTest {
 	@Test
 	public void testReadByIdToFile() {
 		Long startTime = System.currentTimeMillis();
-		String id = "5acb543b263c149b9274bc1b";
+		String id = "5acd8f70263c14b40bd11a5f";
 		// 开始插入
-		dssClient.readToFile(id, "/Users/douxiaofeng/Downloads/b.rar");
+		dssClient.readToFile(id, "/Users/douxiaofeng/Downloads/b.jpg");
 		Long endTime = System.currentTimeMillis();
 		Long costTime = endTime - startTime;
 		System.out.println("文件成功， 结束时间戳：" + endTime + "， 用时" + costTime + "毫秒");

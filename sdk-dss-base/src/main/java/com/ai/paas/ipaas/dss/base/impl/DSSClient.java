@@ -3,6 +3,7 @@ package com.ai.paas.ipaas.dss.base.impl;
 import static com.mongodb.client.model.Filters.eq;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -153,16 +154,27 @@ public class DSSClient implements IDSSClient {
 		}
 		GridFSBucket gridBucket = GridFSBuckets.create(db);
 		GridFSDownloadStream stream = null;
+		ByteArrayOutputStream output = null;
 		try {
 			stream = gridBucket.openDownloadStream(new ObjectId(id));
-			int fileLength = (int) stream.getGridFSFile().getLength();
-			byte[] buffer = new byte[fileLength];
-			stream.read(buffer);
-			return buffer;
+			output = new ByteArrayOutputStream();
+			byte[] buffer = new byte[8192 * 16];
+			int n = 0;
+			while (-1 != (n = stream.read(buffer))) {
+				output.write(buffer, 0, n);
+			}
+			return output.toByteArray();
 		} catch (Exception e) {
 			log.error(e.toString());
 			throw new DSSRuntimeException(e);
 		} finally {
+			if (null != output) {
+				try {
+					output.close();
+				} catch (IOException e) {
+					log.error("", e);
+				}
+			}
 			if (null != stream) {
 				stream.close();
 			}
@@ -223,16 +235,27 @@ public class DSSClient implements IDSSClient {
 		}
 		GridFSBucket gridBucket = GridFSBuckets.create(db);
 		GridFSDownloadStream stream = null;
+		ByteArrayOutputStream output = null;
 		try {
 			stream = gridBucket.openDownloadStream(fileName);
-			int fileLength = (int) stream.getGridFSFile().getLength();
-			byte[] buffer = new byte[fileLength];
-			stream.read(buffer);
-			return buffer;
+			output = new ByteArrayOutputStream();
+			byte[] buffer = new byte[8192 * 16];
+			int n = 0;
+			while (-1 != (n = stream.read(buffer))) {
+				output.write(buffer, 0, n);
+			}
+			return output.toByteArray();
 		} catch (Exception e) {
 			log.error(e.toString());
 			throw new DSSRuntimeException(e);
 		} finally {
+			if (null != output) {
+				try {
+					output.close();
+				} catch (IOException e) {
+					log.error("", e);
+				}
+			}
 			if (null != stream) {
 				stream.close();
 			}
