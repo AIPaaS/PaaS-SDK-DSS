@@ -30,6 +30,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -752,7 +753,10 @@ public class DSSClient implements IDSSClient {
 		values.add(new double[] { 1.0, 1.0 });
 		// System.out.println(dss.withinPolygon("geom", values, new double[] {
 		// 1.5, 0.5 }));
-		System.out.println(dss.findGeoWithinPolygon("geom", values));
+		// System.out.println(dss.findGeoWithinPolygon("geom", values));
+		String where = "{'geom':{'Type': 'Polygon'}}";
+		System.out.println(dss.withinPolygon("geom", where, values));
+		System.out.println(dss.withinPolygon("geom", values));
 	}
 
 	@Override
@@ -783,6 +787,35 @@ public class DSSClient implements IDSSClient {
 			in.endObject();
 			return new ObjectId(objectId);
 		}
+	}
+
+	public List<Document> withinPolygon(final String field, final List<double[]> coordinates) {
+		return withinPolygon(field, null, coordinates);
+	}
+
+	public List<Document> withinPolygon(final String field, String where, final List<double[]> coordinates) {
+		Assert.notNull(field, "the geo field can not be null!");
+		Assert.notNull(coordinates, "the geo record json can not be null!");
+		// 准备数据
+		List<List<double[]>> values = new ArrayList<>();
+		values.add(coordinates);
+		final BasicDBObject pLocation = new BasicDBObject("type", "Polygon");
+		pLocation.put("coordinates", values);
+		final BasicDBObject geometry = new BasicDBObject("$geometry", pLocation);
+		final BasicDBObject filter = new BasicDBObject("$geoIntersects", geometry);
+		final BasicDBObject geoQuery = new BasicDBObject(field, filter);
+		BasicDBObject query = new BasicDBObject();
+		BasicDBList conditions = new BasicDBList();
+		conditions.add(geoQuery);
+		if (!StringUtil.isBlank(where)) {
+			Document otherCondition = Document.parse(where);
+			conditions.add(otherCondition);
+		}
+		query.put("$and", conditions);
+		log.info("the geo withinPolygon query:" + query);
+		List<Document> documents = db.getCollection(defaultCollection).find(query).into(new ArrayList<Document>());
+		log.info("the geo withinPolygon query result:" + documents);
+		return documents;
 	}
 
 	@Override

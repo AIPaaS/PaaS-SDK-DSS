@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bson.Document;
 
 import redis.clients.jedis.JedisCluster;
 
@@ -434,5 +435,15 @@ public class DSSSrvClient implements IDSSClient {
 	@Override
 	public void readToFile(String id, OutputStream out) {
 		dssClient.readToFile(id, out);
+	}
+
+	@Override
+	public List<Document> withinPolygon(String field, List<double[]> coordinates) {
+		return dssClient.withinPolygon(field, coordinates);
+	}
+
+	@Override
+	public List<Document> withinPolygon(String field, String where, List<double[]> coordinates) {
+		return dssClient.withinPolygon(field, where, coordinates);
 	}
 }
