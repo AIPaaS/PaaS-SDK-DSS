@@ -446,4 +446,9 @@ public class DSSSrvClient implements IDSSClient {
 	public List<Document> withinPolygon(String field, String where, List<double[]> coordinates) {
 		return dssClient.withinPolygon(field, where, coordinates);
 	}
+
+	@Override
+	public String query(String query, String sort, int pageNumber, int pageSize) {
+		return dssClient.query(query, sort, pageNumber, pageSize);
+	}
 }

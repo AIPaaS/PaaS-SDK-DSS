@@ -897,4 +897,17 @@ public class DSSClient implements IDSSClient {
 	public void createGeoIndex(String field) {
 		db.getCollection(defaultCollection).createIndex(Indexes.geo2dsphere(field));
 	}
+
+	@Override
+	public String query(String query, String sort, int pageNumber, int pageSize) {
+		Document qryObj = Document.parse(query);
+		Document sortObj = Document.parse(sort);
+		List<Document> documents = db.getCollection(defaultCollection).find(qryObj).sort(sortObj)
+				.skip((pageNumber >= 1 ? (pageNumber - 1) * pageSize : 0)).limit(pageSize)
+				.into(new ArrayList<Document>());
+		if (null != documents) {
+			return gson.toJson(documents);
+		} else
+			return null;
+	}
 }

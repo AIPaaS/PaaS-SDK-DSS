@@ -299,6 +299,19 @@ public interface IDSSClient {
 	 * @return json数组
 	 */
 	public String query(String query, int pageNumber, int pageSize);
+	
+	
+	/**
+	 * 排序分页查询
+	 * @param query
+	 * 			 {"author":"xxxx","date":"xxxx"}
+	 * @param sort
+	 * 		    {"sortField1":1,"sortField2":-1} 1表示升序，-1表示降序
+	 * @param pageNumber
+	 * @param pageSize
+	 * @return
+	 */
+	public String query(String query, String sort,int pageNumber, int pageSize);
 
 	/**
 	 * @deprecated 查询总条数，请使用 count方法

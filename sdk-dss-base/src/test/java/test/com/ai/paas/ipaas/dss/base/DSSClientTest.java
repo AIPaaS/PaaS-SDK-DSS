@@ -22,7 +22,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.ai.paas.ipaas.dss.base.DSSBaseFactory;
+import com.ai.paas.ipaas.dss.base.impl.DSSClient;
 import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -35,9 +35,7 @@ public class DSSClientTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		dssClient = DSSBaseFactory.getClient(
-				"{\"mongoServer\":\"10.19.10.84:37017\",\"database\":\"dsswo\",\"userName\":\"dsswouser\",\"password\":\"dsswopwd\",\"bucket\":\"dsswofs\"}");
-
+		 dssClient = new DSSClient("10.1.234.150:37017", "dss001", "dss001user", "dss001pwd", "gishn01");
 	}
 
 	@AfterClass
@@ -415,6 +413,19 @@ public class DSSClientTest {
 		assertEquals(21, json.get("age").getAsInt());
 	}
 
+	@Test
+	public void testueryQrder() {
+		dssClient.deleteAll();
+		dssClient.insertJSON("{'name':'张三','age':21}");
+		dssClient.insertJSON("{'name':'李四','age':26}");
+		dssClient.insertJSON("{'name':'王五','age':16}");
+		dssClient.insertJSON("{'name':'赵六','age':36}");
+		String document = dssClient.query("{}", "{'age':-1}", 1, 10);
+		JsonArray persons=gson.fromJson(document, JsonArray.class);
+		System.out.println(document);
+		assertEquals("赵六", persons.get(0).getAsJsonObject().get("name").getAsString());
+		assertEquals("李四", persons.get(1).getAsJsonObject().get("name").getAsString());
+	}
 	@Test
 	public void testFindMap() {
 		dssClient.deleteAll();
