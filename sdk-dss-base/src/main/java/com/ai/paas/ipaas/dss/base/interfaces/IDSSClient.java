@@ -95,6 +95,14 @@ public interface IDSSClient {
 	 * @return true成功 false失败
 	 */
 	public boolean delete(String id);
+	
+	/**
+	 * 按指定条件删除一批文件
+	 * @param doc 可以是{"uploadDate": {"$gte" : ISODate("2017-06-20T08:09:08.539Z")} }
+	 * "{'metadata.remark':{$regex:/test/i}}";
+	 * @return
+	 */
+	public long deleteFiles(String json);
 
 	/**
 	 * 修改文件

@@ -910,4 +910,27 @@ public class DSSClient implements IDSSClient {
 		} else
 			return null;
 	}
+
+	@Override
+	public long deleteFiles(String json) {
+		if (StringUtil.isBlank(json))
+			throw new IllegalArgumentException("Warning, Can not delete all files!");
+		Document qryObj = Document.parse(json);
+		long cnt = 0;
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		List<GridFSFile> files = gridBucket.find(qryObj).into(new ArrayList<GridFSFile>());
+		if (null == files)
+			return cnt;
+		for (GridFSFile file : files) {
+			try {
+				gridBucket.delete(file.getObjectId());
+				cnt++;
+				log.info("Delete file:" + file+ " successfully!");
+			} catch (Exception e) {
+				log.error("fail to delete id: " + file.getId(), e);
+			}
+		}
+		log.info("Delete totle files:" + cnt + " successfully!");
+		return cnt;
+	}
 }

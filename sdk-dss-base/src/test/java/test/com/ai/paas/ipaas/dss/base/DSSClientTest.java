@@ -35,7 +35,7 @@ public class DSSClientTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		 dssClient = new DSSClient("10.1.234.150:37017", "dss001", "dss001user", "dss001pwd", "gishn01");
+		dssClient = new DSSClient("10.1.234.150:37017", "dss001", "dss001user", "dss001pwd", "gishn01");
 	}
 
 	@AfterClass
@@ -169,6 +169,22 @@ public class DSSClientTest {
 		// 开始插入
 		String id = dssClient.save(cnt.getBytes(), "test");
 		assertTrue(dssClient.delete(id));
+	}
+
+	@Test
+	public void testDeleteFiles() {
+		String cnt = "this is a test for delete!";
+		// 开始插入
+		long start = System.currentTimeMillis();
+		for (int i = 0; i < 1000; i++) {
+			dssClient.save(cnt.getBytes(), "test123456");
+		}
+		System.out.println("insert:" + (System.currentTimeMillis() - start));
+
+		String filter = "{'metadata.remark':{$regex:/test/i}}";
+		start = System.currentTimeMillis();
+		assertEquals(1000L, dssClient.deleteFiles(filter));
+		System.out.println("delete:" + (System.currentTimeMillis() - start));
 	}
 
 	@Test
@@ -421,11 +437,12 @@ public class DSSClientTest {
 		dssClient.insertJSON("{'name':'王五','age':16}");
 		dssClient.insertJSON("{'name':'赵六','age':36}");
 		String document = dssClient.query("{}", "{'age':-1}", 1, 10);
-		JsonArray persons=gson.fromJson(document, JsonArray.class);
+		JsonArray persons = gson.fromJson(document, JsonArray.class);
 		System.out.println(document);
 		assertEquals("赵六", persons.get(0).getAsJsonObject().get("name").getAsString());
 		assertEquals("李四", persons.get(1).getAsJsonObject().get("name").getAsString());
 	}
+
 	@Test
 	public void testFindMap() {
 		dssClient.deleteAll();
