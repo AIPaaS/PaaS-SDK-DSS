@@ -456,4 +456,9 @@ public class DSSSrvClient implements IDSSClient {
 	public long deleteFiles(String json) {
 		return dssClient.deleteFiles(json);
 	}
+
+	@Override
+	public String queryFiles(String query, int pageNumber, int pageSize) {
+		return dssClient.queryFiles(query, pageNumber, pageSize);
+	}
 }

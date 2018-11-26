@@ -308,6 +308,15 @@ public interface IDSSClient {
 	 */
 	public String query(String query, int pageNumber, int pageSize);
 	
+	/**
+	 * 根据查询条件获取所有文件的信息
+	 * @param query 查询条件，json格式
+	 * @param pageNumber 分页数
+	 * @param pageSize 分页大小
+	 * @return
+	 */
+	public String queryFiles(String query, int pageNumber, int pageSize);
+	
 	
 	/**
 	 * 排序分页查询

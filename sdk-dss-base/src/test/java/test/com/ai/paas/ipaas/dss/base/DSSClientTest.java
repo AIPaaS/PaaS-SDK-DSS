@@ -186,7 +186,17 @@ public class DSSClientTest {
 		assertEquals(1000L, dssClient.deleteFiles(filter));
 		System.out.println("delete:" + (System.currentTimeMillis() - start));
 	}
-
+	@Test
+	public void testQueryFiles() {
+		String cnt = "this is a test for delete!";
+		// 开始插入
+		for (int i = 0; i < 1000; i++) {
+			dssClient.save(cnt.getBytes(), "test123456");
+		}
+		String filter = "{'metadata.remark':{$regex:/test/i}}";
+		System.out.println(dssClient.queryFiles(filter, 1, 100));
+	}
+	
 	@Test
 	public void testUpdateStringByteArray() {
 

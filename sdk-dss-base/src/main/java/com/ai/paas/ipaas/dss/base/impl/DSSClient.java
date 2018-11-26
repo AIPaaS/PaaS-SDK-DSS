@@ -925,12 +925,24 @@ public class DSSClient implements IDSSClient {
 			try {
 				gridBucket.delete(file.getObjectId());
 				cnt++;
-				log.info("Delete file:" + file+ " successfully!");
+				log.info("Delete file:" + file + " successfully!");
 			} catch (Exception e) {
 				log.error("fail to delete id: " + file.getId(), e);
 			}
 		}
 		log.info("Delete totle files:" + cnt + " successfully!");
 		return cnt;
+	}
+
+	@Override
+	public String queryFiles(String query, int pageNumber, int pageSize) {
+		Document qryObj = Document.parse(query);
+		GridFSBucket gridBucket = GridFSBuckets.create(db);
+		List<GridFSFile> files = gridBucket.find(qryObj).skip((pageNumber >= 1 ? (pageNumber - 1) * pageSize : 0))
+				.limit(pageSize).into(new ArrayList<GridFSFile>());
+		if (null != files) {
+			return gson.toJson(files);
+		} else
+			return null;
 	}
 }
