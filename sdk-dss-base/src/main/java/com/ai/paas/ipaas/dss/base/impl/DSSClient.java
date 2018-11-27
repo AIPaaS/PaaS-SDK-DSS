@@ -61,6 +61,7 @@ public class DSSClient implements IDSSClient {
 	private MongoClient mongoClient;
 	private MongoDatabase db;
 	private String defaultCollection = null;
+	private String fileCollection = "fs.files";
 	private final int MAX_QUERY_SIZE = 1000;
 	Gson gson = new GsonBuilder().registerTypeAdapter(ObjectId.class, new ObjectIdTypeAdapter()).create();
 
@@ -944,5 +945,13 @@ public class DSSClient implements IDSSClient {
 			return gson.toJson(files);
 		} else
 			return null;
+	}
+
+	@Override
+	public long countFiles(String query) {
+		if (StringUtil.isBlank(query))
+			query = "{}";
+		Document qryObj = Document.parse(query);
+		return db.getCollection(fileCollection).count(qryObj);
 	}
 }

@@ -198,6 +198,17 @@ public class DSSClientTest {
 	}
 	
 	@Test
+	public void testCountFiles() {
+		String cnt = "this is a test for delete!";
+		// 开始插入
+		for (int i = 0; i < 1000; i++) {
+			dssClient.save(cnt.getBytes(), "test123456");
+		}
+		String filter = "{'metadata.remark':{$regex:/test/i}}";
+		System.out.println(dssClient.countFiles(filter));
+	}
+	
+	@Test
 	public void testUpdateStringByteArray() {
 
 		// 先创建一个文件

@@ -317,7 +317,12 @@ public interface IDSSClient {
 	 */
 	public String queryFiles(String query, int pageNumber, int pageSize);
 	
-	
+	/**
+	 * 根据查询条件获取满足查询条件的文件数量
+	 * @param query	查询条件，json格式
+	 * @return
+	 */
+	public long countFiles(String query);
 	/**
 	 * 排序分页查询
 	 * @param query

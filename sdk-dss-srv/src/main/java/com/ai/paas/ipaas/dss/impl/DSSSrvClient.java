@@ -461,4 +461,9 @@ public class DSSSrvClient implements IDSSClient {
 	public String queryFiles(String query, int pageNumber, int pageSize) {
 		return dssClient.queryFiles(query, pageNumber, pageSize);
 	}
+
+	@Override
+	public long countFiles(String query) {
+		return dssClient.countFiles(query);
+	}
 }
