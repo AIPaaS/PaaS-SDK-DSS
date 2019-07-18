@@ -4,7 +4,7 @@ allprojects{
     apply plugin: 'maven-publish'
 
     ext {
-		moduleVersion = version != "unspecified"?version:'0.4.8'
+		moduleVersion = version != "unspecified"?version:'1.0'
 		moduleMode = project.hasProperty('mode') ? project.getProperty('mode') : 'R'
 		if(moduleMode == 'S'){
 			moduleVersion = moduleVersion + "-SNAPSHOT";
@@ -15,7 +15,7 @@ allprojects{
     }
 
     compileJava.dependsOn clean
-    sourceCompatibility = 1.7
+    sourceCompatibility = 1.8
 
     configurations.all {
 	    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
@@ -34,21 +34,13 @@ subprojects{
     }
 
     dependencies{
-        compile 'com.ai:ipaas-common:0.3'
+        compile 'com.ai:ipaas-common:1.0'
         testCompile(
-                "org.springframework:spring-test:4.1.5.RELEASE",
+                "org.springframework:spring-test:5.1.8.RELEASE",
         )
         testCompile ('junit:junit:4.12'){
            exclude group: 'org.mongodb', module: 'bson'
            exclude group: 'org.mongodb', module: 'mongo-java-driver'
-        }
-
-        testCompile  ('org.apache.jmeter:ApacheJMeter_junit:2.13'){
-            exclude group: 'commons-math3', module: 'commons-math3'
-            exclude group: 'commons-pool2', module: 'commons-pool2'
-            exclude group: 'org.mongodb', module: 'bson'
-            exclude group: 'org.mongodb', module: 'mongo-java-driver'
-			exclude group: 'xerces', module: 'xercesImpl'
         }
 
     }
@@ -64,7 +56,7 @@ project("sdk-dss-base"){
     jar {
         baseName moduleName
         version moduleVersion
-        include 'com/ai/paas/ipaas/dss/base/**'
+        include 'com/ai/paas/ipaas/dss/**'
         manifest {
             attributes 'packageName': moduleName, 'Built-By': builtBy,'create-date': new Date().format('yyyy-MM-dd HH:mm:ss')
         }

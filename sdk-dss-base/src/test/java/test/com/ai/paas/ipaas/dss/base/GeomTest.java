@@ -5,8 +5,8 @@ import java.util.List;
 
 import org.bson.Document;
 
-import com.ai.paas.ipaas.dss.base.impl.DSSClient;
-import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
+import com.ai.paas.ipaas.dss.IDSSClient;
+import com.ai.paas.ipaas.dss.impl.DSSClient;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;

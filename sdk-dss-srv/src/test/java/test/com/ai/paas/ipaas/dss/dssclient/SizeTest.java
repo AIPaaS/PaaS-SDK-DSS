@@ -5,9 +5,9 @@ import java.io.FileNotFoundException;
 import org.junit.Before;
 import org.junit.Test;
 
-import test.com.ai.paas.ipaas.dss.dssclient.base.DSSClient;
+import com.ai.paas.ipaas.dss.IDSSClient;
 
-import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
+import test.com.ai.paas.ipaas.dss.dssclient.base.DSSClient;
 
 
 public class SizeTest extends DSSClient {

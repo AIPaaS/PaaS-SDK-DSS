@@ -3,19 +3,14 @@
 dependencies{
 
 	compile project(":sdk-dss-base")
-	compile 'redis.clients:jedis:2.9.0'
-	compile 'com.ai:ipaas-ccs-inner:0.3'
-	compile 'com.ai:ipaas-uac:0.3'
-	compile 'org.apache.logging.log4j:log4j-api:2.2'
+	compile 'redis.clients:jedis:3.0.1'
+	compile 'com.ai:ipaas-ccs-inner:1.0'
+	compile 'com.ai:ipaas-uac:1.0'
+	compile 'org.apache.logging.log4j:log4j-api:2.12.0'
 	testCompile ('junit:junit:4.12'){
 		exclude group: 'org.mongodb', module: 'mongo-java-driver'
 	}
 
-	testCompile	 ('org.apache.jmeter:ApacheJMeter_junit:2.13'){
-		exclude group: 'commons-math3', module: 'commons-math3'
-		exclude group: 'commons-pool2', module: 'commons-pool2'
-		exclude group: 'org.mongodb', module: 'mongo-java-driver'
-	}
 }
 
 
@@ -34,32 +29,32 @@ publishing {
 						delegate.dependency {
 							delegate.groupId("com.ai")
 							delegate.artifactId("ipaas-dss-base")
-							delegate.version("0.4.8")
+							delegate.version("1.0")
 						}					
 						delegate.dependency {
 							delegate.groupId("com.ai")
 							delegate.artifactId("ipaas-uac")
-							delegate.version("0.3")
+							delegate.version("1.0")
 						}	
 						delegate.dependency {
 							delegate.groupId("redis.clients")
 							delegate.artifactId("jedis")
-							delegate.version("2.9.0")
+							delegate.version("3.0.1")
 						}
 						delegate.dependency {
 							delegate.groupId("com.ai")
 							delegate.artifactId("ipaas-uac")
-							delegate.version("0.3")
+							delegate.version("1.0")
 						}
 						delegate.dependency {
 							delegate.groupId("com.ai")
 							delegate.artifactId("ipaas-ccs-inner")
-							delegate.version("0.3")
+							delegate.version("1.0")
 						}
 						delegate.dependency {
 							delegate.groupId("org.apache.logging.log4j")
 							delegate.artifactId("log4j-api")
-							delegate.version("2.2")
+							delegate.version("2.12.0")
 						}
 					}
 				}
@@ -77,32 +72,32 @@ publishing {
 						delegate.dependency {
 							delegate.groupId("com.ai")
 							delegate.artifactId("ipaas-dss-base")
-							delegate.version("0.4.8")
+							delegate.version("1.0")
 						}					
 						delegate.dependency {
 							delegate.groupId("com.ai")
 							delegate.artifactId("ipaas-uac")
-							delegate.version("0.3")
+							delegate.version("1.0")
 						}	
 						delegate.dependency {
 							delegate.groupId("redis.clients")
 							delegate.artifactId("jedis")
-							delegate.version("2.9.0")
+							delegate.version("3.0.1")
 						}
 						delegate.dependency {
 							delegate.groupId("com.ai")
 							delegate.artifactId("ipaas-uac")
-							delegate.version("0.3")
+							delegate.version("1.0")
 						}
 						delegate.dependency {
 							delegate.groupId("com.ai")
 							delegate.artifactId("ipaas-ccs-inner")
-							delegate.version("0.3")
+							delegate.version("1.0")
 						}
 						delegate.dependency {
 							delegate.groupId("org.apache.logging.log4j")
 							delegate.artifactId("log4j-api")
-							delegate.version("2.2")
+							delegate.version("2.12.0")
 						}
 					}
 				}

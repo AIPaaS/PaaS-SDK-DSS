@@ -1,4 +1,4 @@
-package com.ai.paas.ipaas.dss.base.interfaces;
+package com.ai.paas.ipaas.dss;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -335,13 +335,6 @@ public interface IDSSClient {
 	 */
 	public String query(String query, String sort,int pageNumber, int pageSize);
 
-	/**
-	 * @deprecated 查询总条数，请使用 count方法
-	 * @param query
-	 *            {"author":"xxxx","date":"xxxx"}
-	 * @return
-	 */
-	public long getCount(String query);
 
 	/**
 	 * 查询总条数，请使用 count方法

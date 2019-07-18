@@ -3,7 +3,7 @@ package test.com.ai.paas.ipaas.dss.dssfactory;
 import org.junit.Test;
 
 import com.ai.paas.ipaas.dss.DSSFactory;
-import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
+import com.ai.paas.ipaas.dss.IDSSClient;
 import com.ai.paas.ipaas.uac.vo.AuthDescriptor;
 
 public class DSSFactoryTest {

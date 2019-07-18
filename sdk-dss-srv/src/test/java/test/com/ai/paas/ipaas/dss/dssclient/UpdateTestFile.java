@@ -5,7 +5,7 @@ import java.io.File;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.ai.paas.ipaas.dss.base.interfaces.IDSSClient;
+import com.ai.paas.ipaas.dss.IDSSClient;
 
 import test.com.ai.paas.ipaas.dss.dssclient.base.DSSClient;
 
